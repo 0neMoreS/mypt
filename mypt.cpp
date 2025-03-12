@@ -2,14 +2,7 @@
 #include <stdlib.h> // Make : g++ -O3 -fopenmp smallpt.cpp -o smallpt
 #include <stdio.h>  //        Remove "-fopenmp" for g++ version < 4.2
 #define SPHERES 9
-#define FILMZ 25
-// #define ORIGINX 0   // 50
-// #define ORIGINY -10 // 40.8
-// #define ORIGINZ 30  // 81.6
-#define ORIGINX 50   // 50
-#define ORIGINY 40.8 // 40.8
-#define ORIGINZ 81.6 // 81.6
-#define ORIGINCODE
+// #define ORIGINCODE
 
 // g++ -O3 -fopenmp mypt.cpp -o mypt
 
@@ -33,7 +26,7 @@ struct Vec
 struct Ray
 {
     Vec o, d;
-    Ray(Vec o_, Vec d_) : o(o_), d(d_) {}
+    Ray(Vec o_, Vec d_) : o(o_), d(d_.norm()) {}
 };
 enum Refl_t
 {
@@ -48,7 +41,7 @@ struct Sphere
     Refl_t refl; // reflection type (DIFFuse, SPECular, REFRactive)
     Sphere(double rad_, Vec p_, Vec e_, Vec c_, Refl_t refl_) : rad(rad_), p(p_), e(e_), c(c_), refl(refl_) {}
     double intersect(const Ray &r) const
-    { // returns distance(in root from, not real distance), 0 if nohit TODO
+    { // returns distance(in root from, not real distance), 0 if not hit
         Vec op = r.o - p;
         double a = r.d.dot(r.d);
         double b = 2 * r.d.dot(op);
@@ -74,16 +67,19 @@ Sphere spheres[SPHERES] = {
     // Sphere(16.5, Vec(ORIGINX - 25, ORIGINY - 24, ORIGINZ - 34), Vec(), Vec(1, 1, 1) * .999, SPEC), // Mirr
     // Sphere(16.5, Vec(ORIGINX + 23, ORIGINY - 24, ORIGINZ - 3), Vec(), Vec(1, 1, 1) * .999, REFR),  // Glas
     // Sphere(600, Vec(ORIGINX, 600 + ORIGINZ, ORIGINZ), Vec(12, 12, 12), Vec(), DIFF)                // Lite
+
     // [-50, 50] ^ 2
     Sphere(1e5, Vec(1e5 - 50, 0, 0), Vec(), Vec(.75, .25, .25), DIFF),  // Left
     Sphere(1e5, Vec(-1e5 + 50, 0, 0), Vec(), Vec(.25, .25, .75), DIFF), // Rght
     Sphere(1e5, Vec(0, 0, 1e5 - 50), Vec(), Vec(.25, .75, .75), DIFF),  // Back
-    Sphere(1e5, Vec(0, 0, -1e5 + 50), Vec(), Vec(), DIFF),              // Frnt
+    Sphere(1e5, Vec(0, 0, -1e5 + 50), Vec(), Vec(.9, .2, .5), DIFF),    // Frnt
     Sphere(1e5, Vec(0, 1e5 - 50, 0), Vec(), Vec(.75, .25, .75), DIFF),  // Botm
     Sphere(1e5, Vec(0, -1e5 + 50, 0), Vec(), Vec(.75, .75, .75), DIFF), // Top
-    Sphere(16.5, Vec(-25, 24, -34), Vec(), Vec(1, 1, 1) * .999, SPEC),  // Mirr
-    Sphere(16.5, Vec(13, -15, 20), Vec(), Vec(1, 1, 1) * .999, REFR),   // Glas
-    Sphere(600, Vec(0, 600 + 50, 0), Vec(12, 12, 12), Vec(), DIFF)      // Lite
+    Sphere(16.5, Vec(-25, -18, -14), Vec(), Vec(1, 1, 1) * .999, SPEC), // Mirr
+    Sphere(16.5, Vec(13, -14, 8), Vec(), Vec(1, 1, 1) * .999, REFR),    // Glas
+    Sphere(600, Vec(0, -600 + 50, 0), Vec(12, 12, 12), Vec(), DIFF)     // Lite
+
+    // Sphere(10, Vec(0, 0, 10), Vec(), Vec(.75, .25, .25), DIFF), // Test
 };
 
 inline double clamp(double x) { return x < 0 ? 0 : x > 1 ? 1
@@ -91,6 +87,19 @@ inline double clamp(double x) { return x < 0 ? 0 : x > 1 ? 1
 
 inline int toInt(double x) { return int(pow(clamp(x), 1 / 2.2) * 255 + .5); } // gamma
 
+inline bool intersect(const Ray &r, double &t, int &id)
+{
+    double n = sizeof(spheres) / sizeof(Sphere), d, inf = t = 1e20;
+    for (int i = int(n); i--;)
+        if ((d = spheres[i].intersect(r)) && d < t)
+        {
+            t = d;
+            id = i;
+        }
+    return t < inf;
+}
+
+#ifndef ORIGINCODE
 Vec radiance(const Ray &r, int depth, unsigned short *Xi)
 {
     int min_dis = __INT_MAX__;
@@ -105,76 +114,82 @@ Vec radiance(const Ray &r, int depth, unsigned short *Xi)
     }
     return color;
 }
+#endif
 
-#ifndef ORIGINCODE
 int main(int argc, char *argv[])
 {
-    int w = 1024 / 8, h = 768 / 8, samps = argc == 2 ? atoi(argv[1]) / 4 : 30;
-    Ray cam(Vec{0, 0, 250}, Vec());    // cam pos, dir
+    int w = 200, h = 100, samps = argc == 2 ? atoi(argv[1]) : 30;
     FILE *f = fopen("image.ppm", "w"); // Write image to PPM file.
     fprintf(f, "P3\n%d %d\n%d\n", w, h, 255);
     Vec *c = new Vec[w * h];
+    Vec cam{0.0, 0.0, 50.0};
+    Vec lower_left_corner{2.0, 1.0, 49.0};
+    Vec horizontal{-4.0, 0.0, 0.0};
+    Vec vertical{0.0, -2.0, 0.0};
 
-    for (int x = (-w / 2); x < w / 2; x++)
+    for (unsigned short y = 0; y < h; y++)
     {
-        for (int y = (-h / 2); y < h / 2; y++)
+        fprintf(stderr, "\rRendering (%d spp) %5.2f%%", samps, 100. * y / (h - 1));
+        for (unsigned short x = 0; x < w; x++)
         {
             Vec r{0, 0, 0};
-            unsigned short Xi[3] = {0, 0, (unsigned short)(x * x * y * y)};
+            unsigned short Xi[3] = {x, y, (unsigned short)(x * y)};
             for (unsigned short s = 0; s < samps; s++)
             {
-                double rx = erand48(Xi);
-                double ry = erand48(Xi);
-                Vec pixel = {x + rx, y + ry, FILMZ};
-                Vec ro = pixel;
-                Vec rd = (pixel - cam.o).norm();
-                printf("ro: %f, %f, %f \nrd: %f, %f, %f \n", ro.x, ro.y, ro.z, rd.x, rd.y, rd.z);
+                double dx = erand48(Xi);
+                double dy = erand48(Xi);
+                Vec pixel = horizontal * ((float)(x + dx) / (float)w) + vertical * ((float)(y + dy) / (float)h) + lower_left_corner;
+                Vec ro = cam;
+                Vec rd = pixel - cam;
+                rd.norm();
+                // printf("ro: %f, %f, %f \nrd: %f, %f, %f \n", ro.x, ro.y, ro.z, rd.x, rd.y, rd.z);
                 r = r + radiance(Ray{ro, rd}, 2, Xi) * (1.0 / samps);
             }
+            int i = y * w + x;
+            c[i] = c[i] + Vec(clamp(r.x), clamp(r.y), clamp(r.z));
         }
     }
 
     for (int i = 0; i < w * h; i++)
         fprintf(f, "%d %d %d ", toInt(c[i].x), toInt(c[i].y), toInt(c[i].z));
 }
-#endif
 
 #ifdef ORIGINCODE
-int main(int argc, char *argv[])
+Vec radiance(const Ray &r, int depth, unsigned short *Xi)
 {
-    int w = 1024 / 8, h = 768 / 8, samps = argc == 2 ? atoi(argv[1]) / 4 : 30;
-    Ray cam(Vec(0, 0, 25), Vec(0, -0.042612, -1).norm()); // cam pos, dir
-    Vec cx = Vec(w * .5135 / h), cy = (cx % cam.d).norm() * .5135, r, *c = new Vec[w * h];
-    printf("cx: %f, %f, %f \n cy: %f %f %f \n", cx.x, cx.y, cx.z, cy.x, cy.y, cy.z);
-    for (int y = (-h / 2); y < h / 2; y++)
-    { // Loop over image rows
-        fprintf(stderr, "\rRendering (%d spp) %5.2f%%", samps * 4, 100. * y / (h - 1));
-        for (int x = (-w / 2); x < w / 2; x++)
-        {
-            unsigned short Xi[3] = {0, 0, (unsigned short)(y * y * x * x)};
-            for (int sy = 0, i = (h - y - 1) * w + x; sy < 2; sy++)
-            { // 2x2 subpixel rows
-                for (int sx = 0; sx < 2; sx++, r = Vec())
-                { // 2x2 subpixel cols
-                    for (int s = 0; s < samps; s++)
-                    {
-                        double r1 = 2 * erand48(Xi), dx = r1 < 1 ? sqrt(r1) - 1 : 1 - sqrt(2 - r1);
-                        double r2 = 2 * erand48(Xi), dy = r2 < 1 ? sqrt(r2) - 1 : 1 - sqrt(2 - r2);
-                        Vec d = cx * (((sx + .5 + dx) / 2 + x) / w - .5) +
-                                cy * (((sy + .5 + dy) / 2 + y) / h - .5) + cam.d;
-                        Vec ro = cam.o + d;
-                        Vec rd = d.norm();
-                        printf("ro: %f, %f, %f \n rd: %f, %f, %f \n", ro.x, ro.y, ro.z, rd.x, rd.y, rd.z);
-                        r = r + radiance(Ray(ro, rd), 0, Xi) * (1. / samps);
-                    } // Camera rays are pushed ^^^^^ forward to start in interior
-                    c[i] = c[i] + Vec(clamp(r.x), clamp(r.y), clamp(r.z)) * .25;
-                }
-            }
-        }
+    double t;   // distance to intersection
+    int id = 0; // id of intersected object
+    if (!intersect(r, t, id))
+        return Vec();                // if miss, return black
+    const Sphere &obj = spheres[id]; // the hit object
+    Vec x = r.o + r.d * t, n = (x - obj.p).norm(), nl = n.dot(r.d) < 0 ? n : n * -1, f = obj.c;
+    double p = f.x > f.y && f.x > f.z ? f.x : f.y > f.z ? f.y
+                                                        : f.z; // max refl
+    if (++depth > 5)
+        if (erand48(Xi) < p)
+            f = f * (1 / p);
+        else
+            return obj.e; // R.R.
+    if (obj.refl == DIFF)
+    { // Ideal DIFFUSE reflection
+        double r1 = 2 * M_PI * erand48(Xi), r2 = erand48(Xi), r2s = sqrt(r2);
+        Vec w = nl, u = ((fabs(w.x) > .1 ? Vec(0, 1) : Vec(1)) % w).norm(), v = w % u;
+        Vec d = (u * cos(r1) * r2s + v * sin(r1) * r2s + w * sqrt(1 - r2)).norm();
+        return obj.e + f.mult(radiance(Ray(x, d), depth, Xi));
     }
-    FILE *f = fopen("image.ppm", "w"); // Write image to PPM file.
-    fprintf(f, "P3\n%d %d\n%d\n", w, h, 255);
-    for (int i = 0; i < w * h; i++)
-        fprintf(f, "%d %d %d ", toInt(c[i].x), toInt(c[i].y), toInt(c[i].z));
+    else if (obj.refl == SPEC) // Ideal SPECULAR reflection
+        return obj.e + f.mult(radiance(Ray(x, r.d - n * 2 * n.dot(r.d)), depth, Xi));
+    Ray reflRay(x, r.d - n * 2 * n.dot(r.d)); // Ideal dielectric REFRACTION
+    bool into = n.dot(nl) > 0;                // Ray from outside going in?
+    double nc = 1, nt = 1.5, nnt = into ? nc / nt : nt / nc, ddn = r.d.dot(nl), cos2t;
+    if ((cos2t = 1 - nnt * nnt * (1 - ddn * ddn)) < 0) // Total internal reflection
+        return obj.e + f.mult(radiance(reflRay, depth, Xi));
+    Vec tdir = (r.d * nnt - n * ((into ? 1 : -1) * (ddn * nnt + sqrt(cos2t)))).norm();
+    double a = nt - nc, b = nt + nc, R0 = a * a / (b * b), c = 1 - (into ? -ddn : tdir.dot(n));
+    double Re = R0 + (1 - R0) * c * c * c * c * c, Tr = 1 - Re, P = .25 + .5 * Re, RP = Re / P, TP = Tr / (1 - P);
+    return obj.e + f.mult(depth > 2 ? (erand48(Xi) < P ? // Russian roulette
+                                           radiance(reflRay, depth, Xi) * RP
+                                                       : radiance(Ray(x, tdir), depth, Xi) * TP)
+                                    : radiance(reflRay, depth, Xi) * Re + radiance(Ray(x, tdir), depth, Xi) * Tr);
 }
 #endif
