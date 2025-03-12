@@ -2,9 +2,9 @@
 #include <stdlib.h> // Make : g++ -O3 -fopenmp smallpt.cpp -o smallpt
 #include <stdio.h>  //        Remove "-fopenmp" for g++ version < 4.2
 #define SPHERES 9
+#define MAXDEPTH 5
+#define LAMBERTALBEDO 0.5
 // #define ORIGINCODE
-
-// g++ -O3 -fopenmp mypt.cpp -o mypt
 
 struct Vec
 {                   // Usage: time ./smallpt 5000 && xv image.ppm
@@ -51,8 +51,8 @@ struct Sphere
         {
             return 0;
         }
-        double root1 = -b - sqrt(delta);
-        double root2 = -b + sqrt(delta);
+        double root1 = (-b - sqrt(delta)) / 2 * a;
+        double root2 = (-b + sqrt(delta)) / 2 * a;
         return root1 > 0 ? root1 : (root2 > 0 ? root2 : 0); // consider the light source located in the sphere
     }
 };
@@ -65,11 +65,9 @@ Sphere spheres[SPHERES] = {
     Sphere(1e5, Vec(0, 0, -1e5 + 50), Vec(), Vec(.9, .2, .5), DIFF),      // Frnt
     Sphere(1e5, Vec(0, 1e5 - 50, 0), Vec(), Vec(.75, .25, .75), DIFF),    // Botm
     Sphere(1e5, Vec(0, -1e5 + 50, 0), Vec(), Vec(.75, .75, .75), DIFF),   // Top
-    Sphere(16.5, Vec(-25, -18, -14), Vec(), Vec(1, 1, 1) * .999, SPEC),   // Mirr
-    Sphere(16.5, Vec(13, -14, 8), Vec(), Vec(1, 1, 1) * .999, REFR),      // Glas
+    Sphere(16.5, Vec(-25, -18, -14), Vec(), Vec(1, 1, 1) * .999, DIFF),   // Mirr
+    Sphere(16.5, Vec(13, -14, 8), Vec(), Vec(1, 1, 1) * .999, DIFF),      // Glas
     Sphere(600, Vec(0, 600 + 50 - 0.27, 0), Vec(12, 12, 12), Vec(), DIFF) // Lite
-
-    // Sphere(10, Vec(0, 0, 10), Vec(), Vec(.75, .25, .25), DIFF), // Test
 };
 
 inline double clamp(double x) { return x < 0 ? 0 : x > 1 ? 1
@@ -77,32 +75,42 @@ inline double clamp(double x) { return x < 0 ? 0 : x > 1 ? 1
 
 inline int toInt(double x) { return int(pow(clamp(x), 1 / 2.2) * 255 + .5); } // gamma
 
-inline bool intersect(const Ray &r, double &t, int &id)
-{
-    double n = sizeof(spheres) / sizeof(Sphere), d, inf = t = 1e20;
-    for (int i = int(n); i--;)
-        if ((d = spheres[i].intersect(r)) && d < t)
-        {
-            t = d;
-            id = i;
-        }
-    return t < inf;
-}
-
 #ifndef ORIGINCODE
 Vec radiance(const Ray &r, int depth, unsigned short *Xi)
 {
-    int min_dis = __INT_MAX__;
-    Vec color{0, 0, 0};
+    // ========================== intersect ==========================
+    int id = -1;
+    int min_t = __INT_MAX__;
     for (int i = 0; i < SPHERES; i++)
     {
-        if (spheres[i].intersect(r) != 0 && spheres[i].intersect(r) < min_dis)
+        if (spheres[i].intersect(r) != 0 && spheres[i].intersect(r) < min_t)
         {
-            min_dis = spheres[i].intersect(r);
-            color = spheres[i].c + spheres[i].e;
+            min_t = spheres[i].intersect(r);
+            id = i;
         }
     }
-    return color;
+    if (id == -1)
+    {
+        return Vec();
+    }
+    Sphere &obj = spheres[id];
+    // ========================== init ==========================
+    // try no R.R. first
+    if (++depth >= MAXDEPTH)
+    {
+        return obj.e;
+    }
+    Vec f = obj.c; // rgb can standard radiance
+    Vec x = r.o + r.d * min_t;
+    Vec n = (x - obj.p).norm();
+
+    // ========================== specular ==========================
+    if (obj.refl == DIFF)
+    {
+        return obj.e + f.mult(radiance(Ray{x, r.d - n * 2 * n.dot(r.d)}, depth, Xi));
+    }
+
+    return obj.e;
 }
 #endif
 
@@ -128,12 +136,11 @@ int main(int argc, char *argv[])
             {
                 double dx = erand48(Xi);
                 double dy = erand48(Xi);
-                Vec pixel = horizontal * ((float)(x + dx) / (float)w) + vertical * ((float)(y + dy) / (float)h) + lower_left_corner;
+                Vec pixel = horizontal * ((double)(x + dx) / (double)w) + vertical * ((double)(y + dy) / (double)h) + lower_left_corner;
                 Vec ro = cam;
                 Vec rd = pixel - cam;
-                rd.norm();
                 // printf("ro: %f, %f, %f \nrd: %f, %f, %f \n", ro.x, ro.y, ro.z, rd.x, rd.y, rd.z);
-                r = r + radiance(Ray{ro, rd}, 2, Xi) * (1.0 / samps);
+                r = r + radiance(Ray{ro, rd}, 0, Xi) * (1.0 / samps);
             }
             int i = y * w + x;
             c[i] = c[i] + Vec(clamp(r.x), clamp(r.y), clamp(r.z));
@@ -143,6 +150,20 @@ int main(int argc, char *argv[])
     for (int i = 0; i < w * h; i++)
         fprintf(f, "%d %d %d ", toInt(c[i].x), toInt(c[i].y), toInt(c[i].z));
 }
+
+#ifdef ORIGINCODE
+inline bool intersect(const Ray &r, double &t, int &id)
+{
+    double n = sizeof(spheres) / sizeof(Sphere), d, inf = t = 1e20;
+    for (int i = int(n); i--;)
+        if ((d = spheres[i].intersect(r)) && d < t)
+        {
+            t = d;
+            id = i;
+        }
+    return t < inf;
+}
+#endif
 
 #ifdef ORIGINCODE
 Vec radiance(const Ray &r, int depth, unsigned short *Xi)
