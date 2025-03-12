@@ -164,10 +164,10 @@ Vec radiance(const Ray &r, int depth, unsigned short *Xi)
     // ========================== diffuse ==========================
     else if (obj.refl == DIFF)
     { // Ideal DIFFUSE reflection
-        double r1 = 2 * M_PI * erand48(Xi), r2 = erand48(Xi), r2s = sqrt(r2);
-        Vec w = nl, u = ((fabs(w.x) > .1 ? Vec(0, 1) : Vec(1)) % w).norm(), v = w % u;
-        Vec d = (u * cos(r1) * r2s + v * sin(r1) * r2s + w * sqrt(1 - r2)).norm();
-        return obj.e + f.mult(radiance(Ray(x, d), depth, Xi));
+        // double r1 = 2 * M_PI * erand48(Xi), r2 = erand48(Xi), r2s = sqrt(r2);
+        // Vec w = nl, u = ((fabs(w.x) > .1 ? Vec(0, 1) : Vec(1)) % w).norm(), v = w % u;
+        // Vec d = (u * cos(r1) * r2s + v * sin(r1) * r2s + w * sqrt(1 - r2)).norm();
+        return obj.e + obj.c;
     }
 
     return obj.e;
