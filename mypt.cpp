@@ -2,7 +2,14 @@
 #include <stdlib.h> // Make : g++ -O3 -fopenmp smallpt.cpp -o smallpt
 #include <stdio.h>  //        Remove "-fopenmp" for g++ version < 4.2
 #define SPHERES 9
-#define FILMZ 200
+#define FILMZ 25
+// #define ORIGINX 0   // 50
+// #define ORIGINY -10 // 40.8
+// #define ORIGINZ 30  // 81.6
+#define ORIGINX 50   // 50
+#define ORIGINY 40.8 // 40.8
+#define ORIGINZ 81.6 // 81.6
+#define ORIGINCODE
 
 // g++ -O3 -fopenmp mypt.cpp -o mypt
 
@@ -58,15 +65,25 @@ struct Sphere
 };
 Sphere spheres[SPHERES] = {
     // Scene: radius, position, emission, color, material
-    Sphere(1e5, Vec(1e5 + 1, 40.8, 81.6), Vec(), Vec(.75, .25, .25), DIFF),   // Left
-    Sphere(1e5, Vec(-1e5 + 99, 40.8, 81.6), Vec(), Vec(.25, .25, .75), DIFF), // Rght
-    Sphere(1e5, Vec(50, 40.8, 1e5), Vec(), Vec(.25, .75, .75), DIFF),         // Back
-    Sphere(1e5, Vec(50, 40.8, -1e5 + 170), Vec(), Vec(), DIFF),               // Frnt
-    Sphere(1e5, Vec(50, 1e5, 81.6), Vec(), Vec(.75, .25, .75), DIFF),         // Botm
-    Sphere(1e5, Vec(50, -1e5 + 81.6, 81.6), Vec(), Vec(.75, .75, .75), DIFF), // Top
-    Sphere(16.5, Vec(27, 16.5, 47), Vec(), Vec(1, 1, 1) * .999, SPEC),        // Mirr
-    Sphere(16.5, Vec(73, 16.5, 78), Vec(), Vec(1, 1, 1) * .999, REFR),        // Glas
-    Sphere(600, Vec(50, 681.6 - .27, 81.6), Vec(12, 12, 12), Vec(), DIFF)     // Lite
+    // Sphere(1e5, Vec(1e5, ORIGINY, ORIGINZ), Vec(), Vec(.75, .25, .25), DIFF),                      // Left
+    // Sphere(1e5, Vec(-1e5 + ORIGINX * 2, ORIGINY, ORIGINZ), Vec(), Vec(.25, .25, .75), DIFF),       // Rght
+    // Sphere(1e5, Vec(ORIGINX, ORIGINY, 1e5), Vec(), Vec(.25, .75, .75), DIFF),                      // Back
+    // Sphere(1e5, Vec(ORIGINX, ORIGINY, -1e5 + ORIGINZ * 2), Vec(), Vec(), DIFF),                    // Frnt
+    // Sphere(1e5, Vec(ORIGINX, 1e5, ORIGINZ), Vec(), Vec(.75, .25, .75), DIFF),                      // Botm
+    // Sphere(1e5, Vec(ORIGINX, -1e5 + ORIGINZ, ORIGINZ), Vec(), Vec(.75, .75, .75), DIFF),           // Top
+    // Sphere(16.5, Vec(ORIGINX - 25, ORIGINY - 24, ORIGINZ - 34), Vec(), Vec(1, 1, 1) * .999, SPEC), // Mirr
+    // Sphere(16.5, Vec(ORIGINX + 23, ORIGINY - 24, ORIGINZ - 3), Vec(), Vec(1, 1, 1) * .999, REFR),  // Glas
+    // Sphere(600, Vec(ORIGINX, 600 + ORIGINZ, ORIGINZ), Vec(12, 12, 12), Vec(), DIFF)                // Lite
+    // [-50, 50] ^ 2
+    Sphere(1e5, Vec(1e5 - 50, 0, 0), Vec(), Vec(.75, .25, .25), DIFF),  // Left
+    Sphere(1e5, Vec(-1e5 + 50, 0, 0), Vec(), Vec(.25, .25, .75), DIFF), // Rght
+    Sphere(1e5, Vec(0, 0, 1e5 - 50), Vec(), Vec(.25, .75, .75), DIFF),  // Back
+    Sphere(1e5, Vec(0, 0, -1e5 + 50), Vec(), Vec(), DIFF),              // Frnt
+    Sphere(1e5, Vec(0, 1e5 - 50, 0), Vec(), Vec(.75, .25, .75), DIFF),  // Botm
+    Sphere(1e5, Vec(0, -1e5 + 50, 0), Vec(), Vec(.75, .75, .75), DIFF), // Top
+    Sphere(16.5, Vec(-25, 24, -34), Vec(), Vec(1, 1, 1) * .999, SPEC),  // Mirr
+    Sphere(16.5, Vec(13, -15, 20), Vec(), Vec(1, 1, 1) * .999, REFR),   // Glas
+    Sphere(600, Vec(0, 600 + 50, 0), Vec(12, 12, 12), Vec(), DIFF)      // Lite
 };
 
 inline double clamp(double x) { return x < 0 ? 0 : x > 1 ? 1
@@ -89,45 +106,54 @@ Vec radiance(const Ray &r, int depth, unsigned short *Xi)
     return color;
 }
 
-// int main(int argc, char *argv[])
-// {
-//     int w = 1024 / 8, h = 768 / 8, samps = argc == 2 ? atoi(argv[1]) / 4 : 30;
-//     Ray cam(Vec(50, 52, 295.6), Vec()); // cam pos, dir
-//     FILE *f = fopen("image.ppm", "w");  // Write image to PPM file.
-//     fprintf(f, "P3\n%d %d\n%d\n", w, h, 255);
-//     Vec *c = new Vec[w * h];
-
-//     for (unsigned short x = 0; x < w; x++)
-//     {
-//         for (unsigned short y = 0; y < h; y++)
-//         {
-//             Vec r{0, 0, 0};
-//             for (unsigned short s = 0; s < samps; s++)
-//             {
-//                 unsigned short Xi[3] = {0, 0, (unsigned short)(x * y)};
-//                 double rx = erand48(Xi);
-//                 double ry = erand48(Xi);
-//                 Vec pixel = {x + rx, y + ry, FILMZ};
-//                 r = r + radiance(Ray{cam.o, (pixel - cam.o).norm()}, 2, Xi) * (1.0 / samps);
-//             }
-//         }
-//     }
-
-//     for (int i = 0; i < w * h; i++)
-//         fprintf(f, "%d %d %d ", toInt(c[i].x), toInt(c[i].y), toInt(c[i].z));
-// }
-
+#ifndef ORIGINCODE
 int main(int argc, char *argv[])
 {
-    int w = 1024, h = 768, samps = argc == 2 ? atoi(argv[1]) / 4 : 30;
-    Ray cam(Vec(50, 52, 295.6), Vec(0, -0.042612, -1).norm()); // cam pos, dir
+    int w = 1024 / 8, h = 768 / 8, samps = argc == 2 ? atoi(argv[1]) / 4 : 30;
+    Ray cam(Vec{0, 0, 250}, Vec());    // cam pos, dir
+    FILE *f = fopen("image.ppm", "w"); // Write image to PPM file.
+    fprintf(f, "P3\n%d %d\n%d\n", w, h, 255);
+    Vec *c = new Vec[w * h];
+
+    for (int x = (-w / 2); x < w / 2; x++)
+    {
+        for (int y = (-h / 2); y < h / 2; y++)
+        {
+            Vec r{0, 0, 0};
+            unsigned short Xi[3] = {0, 0, (unsigned short)(x * x * y * y)};
+            for (unsigned short s = 0; s < samps; s++)
+            {
+                double rx = erand48(Xi);
+                double ry = erand48(Xi);
+                Vec pixel = {x + rx, y + ry, FILMZ};
+                Vec ro = pixel;
+                Vec rd = (pixel - cam.o).norm();
+                printf("ro: %f, %f, %f \nrd: %f, %f, %f \n", ro.x, ro.y, ro.z, rd.x, rd.y, rd.z);
+                r = r + radiance(Ray{ro, rd}, 2, Xi) * (1.0 / samps);
+            }
+        }
+    }
+
+    for (int i = 0; i < w * h; i++)
+        fprintf(f, "%d %d %d ", toInt(c[i].x), toInt(c[i].y), toInt(c[i].z));
+}
+#endif
+
+#ifdef ORIGINCODE
+int main(int argc, char *argv[])
+{
+    int w = 1024 / 8, h = 768 / 8, samps = argc == 2 ? atoi(argv[1]) / 4 : 30;
+    Ray cam(Vec(0, 0, 25), Vec(0, -0.042612, -1).norm()); // cam pos, dir
     Vec cx = Vec(w * .5135 / h), cy = (cx % cam.d).norm() * .5135, r, *c = new Vec[w * h];
     printf("cx: %f, %f, %f \n cy: %f %f %f \n", cx.x, cx.y, cx.z, cy.x, cy.y, cy.z);
-    for (int y = 0; y < h; y++)
+    for (int y = (-h / 2); y < h / 2; y++)
     { // Loop over image rows
         fprintf(stderr, "\rRendering (%d spp) %5.2f%%", samps * 4, 100. * y / (h - 1));
-        for (unsigned short x = 0, Xi[3] = {0, 0, (unsigned short)(y * y * y)}; x < w; x++)
-            for (int sy = 0, i = (h - y - 1) * w + x; sy < 2; sy++) // 2x2 subpixel rows
+        for (int x = (-w / 2); x < w / 2; x++)
+        {
+            unsigned short Xi[3] = {0, 0, (unsigned short)(y * y * x * x)};
+            for (int sy = 0, i = (h - y - 1) * w + x; sy < 2; sy++)
+            { // 2x2 subpixel rows
                 for (int sx = 0; sx < 2; sx++, r = Vec())
                 { // 2x2 subpixel cols
                     for (int s = 0; s < samps; s++)
@@ -136,16 +162,19 @@ int main(int argc, char *argv[])
                         double r2 = 2 * erand48(Xi), dy = r2 < 1 ? sqrt(r2) - 1 : 1 - sqrt(2 - r2);
                         Vec d = cx * (((sx + .5 + dx) / 2 + x) / w - .5) +
                                 cy * (((sy + .5 + dy) / 2 + y) / h - .5) + cam.d;
-                        Vec ro = cam.o + d * 140;
+                        Vec ro = cam.o + d;
                         Vec rd = d.norm();
-                        printf("ro: %f, %f, %f \n rd: %f, %f, %f", ro.x, ro.y, ro.z, rd.x, rd.y, rd.z);
-                        r = r + radiance(Ray(cam.o + d * 140, d.norm()), 0, Xi) * (1. / samps);
+                        printf("ro: %f, %f, %f \n rd: %f, %f, %f \n", ro.x, ro.y, ro.z, rd.x, rd.y, rd.z);
+                        r = r + radiance(Ray(ro, rd), 0, Xi) * (1. / samps);
                     } // Camera rays are pushed ^^^^^ forward to start in interior
                     c[i] = c[i] + Vec(clamp(r.x), clamp(r.y), clamp(r.z)) * .25;
                 }
+            }
+        }
     }
     FILE *f = fopen("image.ppm", "w"); // Write image to PPM file.
     fprintf(f, "P3\n%d %d\n%d\n", w, h, 255);
     for (int i = 0; i < w * h; i++)
         fprintf(f, "%d %d %d ", toInt(c[i].x), toInt(c[i].y), toInt(c[i].z));
 }
+#endif
