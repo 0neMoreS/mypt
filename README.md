@@ -8,4 +8,8 @@
     Simple implementation. Just emit rays through pixels one by one. No perspective, simple random sampling...
     Notice the format .ppm, which record y first then x.
 
-3. diffuse in radiance
+3. specular in radiance
+    Why just using mult for integrate? -- just one direction of the 'input light' so we can ignore integrate!
+
+4. diffuse in radiance
+    sample in hemisphere and thus ignore integrate?

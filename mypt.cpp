@@ -65,8 +65,8 @@ Sphere spheres[SPHERES] = {
     Sphere(1e5, Vec(0, 0, -1e5 + 50), Vec(), Vec(.9, .2, .5), DIFF),      // Frnt
     Sphere(1e5, Vec(0, 1e5 - 50, 0), Vec(), Vec(.75, .25, .75), DIFF),    // Botm
     Sphere(1e5, Vec(0, -1e5 + 50, 0), Vec(), Vec(.75, .75, .75), DIFF),   // Top
-    Sphere(16.5, Vec(-25, -18, -14), Vec(), Vec(1, 1, 1) * .999, DIFF),   // Mirr
-    Sphere(16.5, Vec(13, -14, 8), Vec(), Vec(1, 1, 1) * .999, DIFF),      // Glas
+    Sphere(16.5, Vec(-25, -18, -14), Vec(), Vec(1, 1, 1) * .999, SPEC),   // Mirr
+    Sphere(16.5, Vec(13, -14, 8), Vec(), Vec(1, 1, 1) * .999, SPEC),      // Glas
     Sphere(600, Vec(0, 600 + 50 - 0.27, 0), Vec(12, 12, 12), Vec(), DIFF) // Lite
 };
 
@@ -74,82 +74,6 @@ inline double clamp(double x) { return x < 0 ? 0 : x > 1 ? 1
                                                          : x; } // limit x to [0,1]
 
 inline int toInt(double x) { return int(pow(clamp(x), 1 / 2.2) * 255 + .5); } // gamma
-
-#ifndef ORIGINCODE
-Vec radiance(const Ray &r, int depth, unsigned short *Xi)
-{
-    // ========================== intersect ==========================
-    int id = -1;
-    int min_t = __INT_MAX__;
-    for (int i = 0; i < SPHERES; i++)
-    {
-        if (spheres[i].intersect(r) != 0 && spheres[i].intersect(r) < min_t)
-        {
-            min_t = spheres[i].intersect(r);
-            id = i;
-        }
-    }
-    if (id == -1)
-    {
-        return Vec();
-    }
-    Sphere &obj = spheres[id];
-    // ========================== init ==========================
-    // try no R.R. first
-    if (++depth >= MAXDEPTH)
-    {
-        return obj.e;
-    }
-    Vec f = obj.c; // rgb can standard radiance
-    Vec x = r.o + r.d * min_t;
-    Vec n = (x - obj.p).norm();
-
-    // ========================== specular ==========================
-    if (obj.refl == DIFF)
-    {
-        return obj.e + f.mult(radiance(Ray{x, r.d - n * 2 * n.dot(r.d)}, depth, Xi));
-    }
-
-    return obj.e;
-}
-#endif
-
-int main(int argc, char *argv[])
-{
-    int w = 200, h = 100, samps = argc == 2 ? atoi(argv[1]) : 30;
-    FILE *f = fopen("image.ppm", "w"); // Write image to PPM file.
-    fprintf(f, "P3\n%d %d\n%d\n", w, h, 255);
-    Vec *c = new Vec[w * h];
-    Vec cam{0.0, 0.0, 50.0};
-    Vec lower_left_corner{2.0, 1.0, 49.0};
-    Vec horizontal{-4.0, 0.0, 0.0};
-    Vec vertical{0.0, -2.0, 0.0};
-
-    for (unsigned short y = 0; y < h; y++)
-    {
-        fprintf(stderr, "\rRendering (%d spp) %5.2f%%", samps, 100. * y / (h - 1));
-        for (unsigned short x = 0; x < w; x++)
-        {
-            Vec r{0, 0, 0};
-            unsigned short Xi[3] = {x, y, (unsigned short)(x * y)};
-            for (unsigned short s = 0; s < samps; s++)
-            {
-                double dx = erand48(Xi);
-                double dy = erand48(Xi);
-                Vec pixel = horizontal * ((double)(x + dx) / (double)w) + vertical * ((double)(y + dy) / (double)h) + lower_left_corner;
-                Vec ro = cam;
-                Vec rd = pixel - cam;
-                // printf("ro: %f, %f, %f \nrd: %f, %f, %f \n", ro.x, ro.y, ro.z, rd.x, rd.y, rd.z);
-                r = r + radiance(Ray{ro, rd}, 0, Xi) * (1.0 / samps);
-            }
-            int i = y * w + x;
-            c[i] = c[i] + Vec(clamp(r.x), clamp(r.y), clamp(r.z));
-        }
-    }
-
-    for (int i = 0; i < w * h; i++)
-        fprintf(f, "%d %d %d ", toInt(c[i].x), toInt(c[i].y), toInt(c[i].z));
-}
 
 #ifdef ORIGINCODE
 inline bool intersect(const Ray &r, double &t, int &id)
@@ -163,9 +87,7 @@ inline bool intersect(const Ray &r, double &t, int &id)
         }
     return t < inf;
 }
-#endif
 
-#ifdef ORIGINCODE
 Vec radiance(const Ray &r, int depth, unsigned short *Xi)
 {
     double t;   // distance to intersection
@@ -204,3 +126,88 @@ Vec radiance(const Ray &r, int depth, unsigned short *Xi)
                                     : radiance(reflRay, depth, Xi) * Re + radiance(Ray(x, tdir), depth, Xi) * Tr);
 }
 #endif
+
+#ifndef ORIGINCODE
+Vec radiance(const Ray &r, int depth, unsigned short *Xi)
+{
+    // ========================== intersect ==========================
+    int id = -1;
+    int min_t = __INT_MAX__;
+    for (int i = 0; i < SPHERES; i++)
+    {
+        if (spheres[i].intersect(r) != 0 && spheres[i].intersect(r) < min_t)
+        {
+            min_t = spheres[i].intersect(r);
+            id = i;
+        }
+    }
+    if (id == -1)
+    {
+        return Vec();
+    }
+    Sphere &obj = spheres[id];
+    // ========================== init ==========================
+    // try no R.R. first
+    if (++depth >= MAXDEPTH)
+    {
+        return obj.e;
+    }
+    Vec f = obj.c; // rgb can standard radiance
+    Vec x = r.o + r.d * min_t;
+    Vec n = (x - obj.p).norm();
+    Vec nl = n.dot(r.d) < 0 ? n : n * -1;
+    // ========================== specular ==========================
+    if (obj.refl == SPEC)
+    {
+        return obj.e + f.mult(radiance(Ray{x, r.d - nl * 2 * n.dot(r.d)}, depth, Xi)) * abs(r.d.dot(nl));
+    }
+    // ========================== diffuse ==========================
+    else if (obj.refl == DIFF)
+    { // Ideal DIFFUSE reflection
+        double r1 = 2 * M_PI * erand48(Xi), r2 = erand48(Xi), r2s = sqrt(r2);
+        Vec w = nl, u = ((fabs(w.x) > .1 ? Vec(0, 1) : Vec(1)) % w).norm(), v = w % u;
+        Vec d = (u * cos(r1) * r2s + v * sin(r1) * r2s + w * sqrt(1 - r2)).norm();
+        return obj.e + f.mult(radiance(Ray(x, d), depth, Xi));
+    }
+
+    return obj.e;
+}
+#endif
+
+int main(int argc, char *argv[])
+{
+    int w = 800, h = 400, samps = argc == 2 ? atoi(argv[1]) : 30;
+    FILE *f = fopen("image.ppm", "w"); // Write image to PPM file.
+    fprintf(f, "P3\n%d %d\n%d\n", w, h, 255);
+    Vec *c = new Vec[w * h];
+    Vec cam{0.0, 0.0, 50.0};
+    Vec lower_left_corner{2.0, 1.0, 49.0};
+    Vec horizontal{-4.0, 0.0, 0.0};
+    Vec vertical{0.0, -2.0, 0.0};
+    Vec r;
+#pragma omp parallel for schedule(dynamic, 1) private(r)
+    for (unsigned short y = 0; y < h; y++)
+    {
+        fprintf(stderr, "\rRendering (%d spp) %5.2f%%", samps, 100. * y / (h - 1));
+        for (unsigned short x = 0; x < w; x++)
+        {
+            unsigned short Xi[3] = {x, y, (unsigned short)(x * y)};
+            r = Vec();
+            for (unsigned short s = 0; s < samps; s++)
+            {
+                double dx = erand48(Xi);
+                double dy = erand48(Xi);
+                Vec pixel = horizontal * ((double)(x + dx) / (double)w) + vertical * ((double)(y + dy) / (double)h) + lower_left_corner;
+                Vec ro = cam;
+                Vec rd = pixel - cam;
+                // printf("ro: %f, %f, %f \nrd: %f, %f, %f \n", ro.x, ro.y, ro.z, rd.x, rd.y, rd.z);
+                r = r + radiance(Ray{ro, rd}, 0, Xi) * (1.0 / samps);
+            }
+            int i = y * w + x;
+            c[i] = c[i] + Vec(clamp(r.x), clamp(r.y), clamp(r.z));
+        }
+    }
+
+    for (int i = 0; i < w * h; i++)
+        fprintf(f, "%d %d %d ", toInt(c[i].x), toInt(c[i].y), toInt(c[i].z));
+}
