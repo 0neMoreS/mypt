@@ -59,15 +59,15 @@ struct Sphere
 Sphere spheres[SPHERES] = {
     // Scene: radius, position, emission, color, material
     // [-50, 50] ^ 3
-    Sphere(1e5, Vec(1e5 - 50, 0, 0), Vec(), Vec(.75, .25, .25), DIFF),  // Left
-    Sphere(1e5, Vec(-1e5 + 50, 0, 0), Vec(), Vec(.25, .25, .75), DIFF), // Rght
-    Sphere(1e5, Vec(0, 0, 1e5 - 50), Vec(), Vec(.25, .75, .75), DIFF),  // Back
-    Sphere(1e5, Vec(0, 0, -1e5 + 50), Vec(), Vec(.9, .2, .5), DIFF),    // Frnt
-    Sphere(1e5, Vec(0, 1e5 - 50, 0), Vec(), Vec(.75, .25, .75), DIFF),  // Botm
-    Sphere(1e5, Vec(0, -1e5 + 50, 0), Vec(), Vec(.75, .75, .75), DIFF), // Top
-    Sphere(16.5, Vec(-25, -18, -14), Vec(), Vec(1, 1, 1) * .999, SPEC), // Mirr
-    Sphere(16.5, Vec(13, -14, 8), Vec(), Vec(1, 1, 1) * .999, REFR),    // Glas
-    Sphere(3, Vec(0, 0, 0), Vec(12, 12, 12), Vec(), DIFF)               // Lite
+    Sphere(1e5, Vec(1e5 - 50, 0, 0), Vec(), Vec(.75, .25, .25), DIFF),    // Left
+    Sphere(1e5, Vec(-1e5 + 50, 0, 0), Vec(), Vec(.25, .25, .75), DIFF),   // Rght
+    Sphere(1e5, Vec(0, 0, 1e5 - 50), Vec(), Vec(.25, .75, .75), DIFF),    // Back
+    Sphere(1e5, Vec(0, 0, -1e5 + 50), Vec(), Vec(.9, .2, .5), DIFF),      // Frnt
+    Sphere(1e5, Vec(0, 1e5 - 50, 0), Vec(), Vec(.75, .25, .75), DIFF),    // Botm
+    Sphere(1e5, Vec(0, -1e5 + 50, 0), Vec(), Vec(.75, .75, .75), DIFF),   // Top
+    Sphere(16.5, Vec(-25, -18, -14), Vec(), Vec(1, 1, 1) * .999, SPEC),   // Mirr
+    Sphere(16.5, Vec(13, -14, 8), Vec(), Vec(1, 1, 1) * .999, REFR),      // Glas
+    Sphere(600, Vec(0, 600 + 50 - 0.27, 0), Vec(12, 12, 12), Vec(), DIFF) // Lite
 
     // Sphere(10, Vec(0, 0, 10), Vec(), Vec(.75, .25, .25), DIFF), // Test
 };
