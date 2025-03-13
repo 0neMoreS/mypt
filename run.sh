@@ -1,2 +1,2 @@
 g++ -O3 -fopenmp mypt.cpp -o mypt
-./mypt 256 > logmy
+./mypt 4096 > logmy
