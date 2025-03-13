@@ -3,8 +3,7 @@
 #include <stdio.h>  //        Remove "-fopenmp" for g++ version < 4.2
 #define SPHERES 9
 #define MAXDEPTH 5
-#define LAMBERTALBEDO 0.7
-// #define ORIGINCODE
+#define LAMBERTALBEDO 1.0 // #define ORIGINCODE
 
 struct Vec
 {                   // Usage: time ./smallpt 5000 && xv image.ppm
@@ -166,8 +165,11 @@ Vec radiance(const Ray &r, int depth, unsigned short *Xi)
     // ========================== diffuse ==========================
     else if (obj.refl == DIFFUSE)
     { // Ideal DIFFUSEUSE reflection
-        Vec random_dir{2 * erand48(Xi) - 1, 2 * erand48(Xi) - 1, 2 * erand48(Xi) - 1};
-        random_dir.norm();
+        // Vec random_dir{2 * erand48(Xi) - 1, 2 * erand48(Xi) - 1, 2 * erand48(Xi) - 1};
+        // random_dir.norm();
+        double random_theta = 2 * M_PI * erand48(Xi);
+        double random_phi = M_PI * erand48(Xi);
+        Vec random_dir{sin(random_theta) * cos(random_phi), sin(random_theta) * sin(random_phi), cos(random_theta)};
         Vec output_dir = x + nl + random_dir;
         return obj.e + f.mult(radiance(Ray{x, output_dir - x}, depth, Xi)) * LAMBERTALBEDO;
     }
