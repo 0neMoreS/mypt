@@ -68,8 +68,8 @@ Sphere spheres[SPHERES] = {
     Sphere(1e5, Vec(0, 1e5 - 50, 0), Vec(), Vec(.75, .25, .75), DIFFUSE),   // Botm
     Sphere(1e5, Vec(0, -1e5 + 50, 0), Vec(), Vec(.75, .75, .75), DIFFUSE),  // Top
     Sphere(16.5, Vec(-20, -18, -14), Vec(), Vec(1, 1, 1) * .999, SPECULAR), // Mirr
-    Sphere(16.5, Vec(13, -14, 8), Vec(), Vec(1, 1, 1) * .999, SPECULAR),    // Glas
-    Sphere(600, Vec(0, 600 + 50 - 1, 0), Vec(12, 12, 12), Vec(), LIGHT)     // Lite
+    Sphere(16.5, Vec(13, 8, 8), Vec(), Vec(1, 1, 1) * .999, SPECULAR),      // Glas
+    Sphere(1e3, Vec(0, 1e3 + 50 - 0.5, 15), Vec(12, 12, 12), Vec(), LIGHT)  // Lite
 };
 
 inline double clamp(double x) { return x < 0 ? 0 : x > 1 ? 1
@@ -166,7 +166,7 @@ Vec radiance(const Ray &r, int depth, unsigned short *Xi)
     // ========================== diffuse ==========================
     else if (obj.refl == DIFFUSE)
     { // Ideal DIFFUSEUSE reflection
-        Vec random_dir{erand48(Xi), erand48(Xi), erand48(Xi)};
+        Vec random_dir{2 * erand48(Xi) - 1, 2 * erand48(Xi) - 1, 2 * erand48(Xi) - 1};
         random_dir.norm();
         Vec output_dir = x + nl + random_dir;
         return obj.e + f.mult(radiance(Ray{x, output_dir - x}, depth, Xi)) * LAMBERTALBEDO;
