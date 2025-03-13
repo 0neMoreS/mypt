@@ -3,7 +3,7 @@
 #include <stdio.h>  //        Remove "-fopenmp" for g++ version < 4.2
 #define SPHERES 9
 #define MAXDEPTH 5
-#define LAMBERTALBEDO 0.5
+#define LAMBERTALBEDO 0.7
 // #define ORIGINCODE
 
 struct Vec
@@ -18,6 +18,7 @@ struct Vec
     Vec operator+(const Vec &b) const { return Vec(x + b.x, y + b.y, z + b.z); }
     Vec operator-(const Vec &b) const { return Vec(x - b.x, y - b.y, z - b.z); }
     Vec operator*(double b) const { return Vec(x * b, y * b, z * b); }
+    bool operator==(const Vec &b) const { return x == b.x && y == b.y && z == b.z; }
     Vec mult(const Vec &b) const { return Vec(x * b.x, y * b.y, z * b.z); }
     Vec &norm() { return *this = *this * (1 / sqrt(x * x + y * y + z * z)); }
     double dot(const Vec &b) const { return x * b.x + y * b.y + z * b.z; }
@@ -30,15 +31,16 @@ struct Ray
 };
 enum Refl_t
 {
-    DIFF,
-    SPEC,
-    REFR
+    DIFFUSE,
+    SPECULAR,
+    REFRACTIVE,
+    LIGHT
 }; // material types, used in radiance()
 struct Sphere
 {
     double rad;  // radius
     Vec p, e, c; // position, emission, color
-    Refl_t refl; // reflection type (DIFFuse, SPECular, REFRactive)
+    Refl_t refl; // reflection type (DIFFUSEuse, SPECULARular, REFRACTIVEactive)
     Sphere(double rad_, Vec p_, Vec e_, Vec c_, Refl_t refl_) : rad(rad_), p(p_), e(e_), c(c_), refl(refl_) {}
     double intersect(const Ray &r) const
     { // returns distance(in root from, not real distance), 0 if not hit
@@ -59,15 +61,15 @@ struct Sphere
 Sphere spheres[SPHERES] = {
     // Scene: radius, position, emission, color, material
     // [-50, 50] ^ 3
-    Sphere(1e5, Vec(1e5 - 50, 0, 0), Vec(), Vec(.75, .25, .25), DIFF),    // Left
-    Sphere(1e5, Vec(-1e5 + 50, 0, 0), Vec(), Vec(.25, .25, .75), DIFF),   // Rght
-    Sphere(1e5, Vec(0, 0, 1e5 - 50), Vec(), Vec(.25, .75, .75), DIFF),    // Back
-    Sphere(1e5, Vec(0, 0, -1e5 + 50), Vec(), Vec(.9, .2, .5), DIFF),      // Frnt
-    Sphere(1e5, Vec(0, 1e5 - 50, 0), Vec(), Vec(.75, .25, .75), DIFF),    // Botm
-    Sphere(1e5, Vec(0, -1e5 + 50, 0), Vec(), Vec(.75, .75, .75), DIFF),   // Top
-    Sphere(16.5, Vec(-25, -18, -14), Vec(), Vec(1, 1, 1) * .999, SPEC),   // Mirr
-    Sphere(16.5, Vec(13, -14, 8), Vec(), Vec(1, 1, 1) * .999, SPEC),      // Glas
-    Sphere(600, Vec(0, 600 + 50 - 0.27, 0), Vec(12, 12, 12), Vec(), DIFF) // Lite
+    Sphere(1e5, Vec(1e5 - 50, 0, 0), Vec(), Vec(.75, .25, .25), DIFFUSE),   // Left
+    Sphere(1e5, Vec(-1e5 + 50, 0, 0), Vec(), Vec(.25, .25, .75), DIFFUSE),  // Rght
+    Sphere(1e5, Vec(0, 0, 1e5 - 50), Vec(), Vec(.25, .75, .75), DIFFUSE),   // Back
+    Sphere(1e5, Vec(0, 0, -1e5 + 50), Vec(), Vec(.9, .2, .5), DIFFUSE),     // Frnt
+    Sphere(1e5, Vec(0, 1e5 - 50, 0), Vec(), Vec(.75, .25, .75), DIFFUSE),   // Botm
+    Sphere(1e5, Vec(0, -1e5 + 50, 0), Vec(), Vec(.75, .75, .75), DIFFUSE),  // Top
+    Sphere(16.5, Vec(-20, -18, -14), Vec(), Vec(1, 1, 1) * .999, SPECULAR), // Mirr
+    Sphere(16.5, Vec(13, -14, 8), Vec(), Vec(1, 1, 1) * .999, SPECULAR),    // Glas
+    Sphere(600, Vec(0, 600 + 50 - 1, 0), Vec(12, 12, 12), Vec(), LIGHT)     // Lite
 };
 
 inline double clamp(double x) { return x < 0 ? 0 : x > 1 ? 1
@@ -103,16 +105,16 @@ Vec radiance(const Ray &r, int depth, unsigned short *Xi)
             f = f * (1 / p);
         else
             return obj.e; // R.R.
-    if (obj.refl == DIFF)
-    { // Ideal DIFFUSE reflection
+    if (obj.refl == DIFFUSE)
+    { // Ideal DIFFUSEUSE reflection
         double r1 = 2 * M_PI * erand48(Xi), r2 = erand48(Xi), r2s = sqrt(r2);
         Vec w = nl, u = ((fabs(w.x) > .1 ? Vec(0, 1) : Vec(1)) % w).norm(), v = w % u;
         Vec d = (u * cos(r1) * r2s + v * sin(r1) * r2s + w * sqrt(1 - r2)).norm();
         return obj.e + f.mult(radiance(Ray(x, d), depth, Xi));
     }
-    else if (obj.refl == SPEC) // Ideal SPECULAR reflection
+    else if (obj.refl == SPECULAR) // Ideal SPECULARULAR reflection
         return obj.e + f.mult(radiance(Ray(x, r.d - n * 2 * n.dot(r.d)), depth, Xi));
-    Ray reflRay(x, r.d - n * 2 * n.dot(r.d)); // Ideal dielectric REFRACTION
+    Ray reflRay(x, r.d - n * 2 * n.dot(r.d)); // Ideal dielectric REFRACTIVEACTION
     bool into = n.dot(nl) > 0;                // Ray from outside going in?
     double nc = 1, nt = 1.5, nnt = into ? nc / nt : nt / nc, ddn = r.d.dot(nl), cos2t;
     if ((cos2t = 1 - nnt * nnt * (1 - ddn * ddn)) < 0) // Total internal reflection
@@ -157,19 +159,23 @@ Vec radiance(const Ray &r, int depth, unsigned short *Xi)
     Vec n = (x - obj.p).norm();
     Vec nl = n.dot(r.d) < 0 ? n : n * -1;
     // ========================== specular ==========================
-    if (obj.refl == SPEC)
+    if (obj.refl == SPECULAR)
     {
         return obj.e + f.mult(radiance(Ray{x, r.d - nl * 2 * n.dot(r.d)}, depth, Xi)) * abs(r.d.dot(nl));
     }
     // ========================== diffuse ==========================
-    else if (obj.refl == DIFF)
-    { // Ideal DIFFUSE reflection
-        // double r1 = 2 * M_PI * erand48(Xi), r2 = erand48(Xi), r2s = sqrt(r2);
-        // Vec w = nl, u = ((fabs(w.x) > .1 ? Vec(0, 1) : Vec(1)) % w).norm(), v = w % u;
-        // Vec d = (u * cos(r1) * r2s + v * sin(r1) * r2s + w * sqrt(1 - r2)).norm();
-        return obj.e + obj.c;
+    else if (obj.refl == DIFFUSE)
+    { // Ideal DIFFUSEUSE reflection
+        Vec random_dir{erand48(Xi), erand48(Xi), erand48(Xi)};
+        random_dir.norm();
+        Vec output_dir = x + nl + random_dir;
+        return obj.e + f.mult(radiance(Ray{x, output_dir - x}, depth, Xi)) * LAMBERTALBEDO;
     }
-
+    // ========================== light ==========================
+    else if (obj.refl == LIGHT)
+    {
+        return obj.e;
+    }
     return obj.e;
 }
 #endif
@@ -203,7 +209,7 @@ int main(int argc, char *argv[])
                 // printf("ro: %f, %f, %f \nrd: %f, %f, %f \n", ro.x, ro.y, ro.z, rd.x, rd.y, rd.z);
                 r = r + radiance(Ray{ro, rd}, 0, Xi) * (1.0 / samps);
             }
-            int i = y * w + x;
+            int i = y * w + (w - x);
             c[i] = c[i] + Vec(clamp(r.x), clamp(r.y), clamp(r.z));
         }
     }
