@@ -3,7 +3,9 @@
 #include <stdio.h>  //        Remove "-fopenmp" for g++ version < 4.2
 #define SPHERES 9
 #define MAXDEPTH 5
-#define LAMBERTALBEDO 0.5 // #define ORIGINCODE
+#define LAMBERTALBEDO 0.5
+#define PRR 0.6
+// #define ORIGINCODE
 
 struct Vec
 {                   // Usage: time ./smallpt 5000 && xv image.ppm
@@ -149,15 +151,20 @@ Vec radiance(const Ray &r, int depth, unsigned short *Xi)
     }
     Sphere &obj = spheres[id];
     // ========================== init ==========================
-    // try no R.R. first
-    if (++depth >= MAXDEPTH)
-    {
-        return obj.e;
-    }
     Vec f = obj.c; // rgb can standard radiance
     Vec x = r.o + r.d * min_t;
     Vec n = (x - obj.p).norm();
     Vec nl = n.dot(r.d) < 0 ? n : n * -1;
+    double p = f.x > f.y && f.x > f.z ? f.x : f.y > f.z ? f.y
+                                                        : f.z;
+    if (++depth >= MAXDEPTH)
+    {
+        if (erand48(Xi) < p)
+            f = f * (1 / p);
+        else
+            return obj.e; // R.R.
+    }
+
     // ========================== specular ==========================
     if (obj.refl == SPECULAR)
     {
@@ -166,8 +173,6 @@ Vec radiance(const Ray &r, int depth, unsigned short *Xi)
     // ========================== diffuse ==========================
     else if (obj.refl == DIFFUSE)
     { // Ideal DIFFUSEUSE reflection
-        // Vec random_dir{2 * erand48(Xi) - 1, 2 * erand48(Xi) - 1, 2 * erand48(Xi) - 1};
-        // random_dir.norm();
         double random_theta = 2 * M_PI * erand48(Xi);
         double random_phi = acos(2 * erand48(Xi) - 1);
         double random_r = pow(erand48(Xi), 1.0 / 3);
@@ -180,6 +185,7 @@ Vec radiance(const Ray &r, int depth, unsigned short *Xi)
     {
         return obj.e;
     }
+    // ========================== refraction ==========================
     return obj.e;
 }
 #endif
