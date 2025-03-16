@@ -269,7 +269,7 @@ int main(int argc, char *argv[])
                 Vec ro = cam;
                 Vec rd = pixel - cam;
                 // printf("ro: %f, %f, %f \nrd: %f, %f, %f \n", ro.x, ro.y, ro.z, rd.x, rd.y, rd.z);
-                r = r + radiance(Ray{ro, rd}, 0, Xi) * (1.0 / samps);
+                r = r + radiance(Ray{pixel, {0, 0, -1}}, 0, Xi) / samps;
             }
             int i = (h - y - 1) * w + x;
             c[i] = c[i] + Vec(clamp(r.x), clamp(r.y), clamp(r.z));
