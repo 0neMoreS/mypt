@@ -238,7 +238,7 @@ int main(int argc, char *argv[])
     Vec *c = new Vec[w * h];
     const double near = 50.0;
     const double far = 49.0;
-    const double vfov = 90.0;
+    const double vfov = 90 * M_PI / 180;
     const double w_ratio_h = 4 / 4;
     const double half_height = tan(vfov / 2) * (near - far);
     const double half_width = half_height * w_ratio_h;
@@ -269,7 +269,7 @@ int main(int argc, char *argv[])
                 Vec ro = cam;
                 Vec rd = pixel - cam;
                 // printf("ro: %f, %f, %f \nrd: %f, %f, %f \n", ro.x, ro.y, ro.z, rd.x, rd.y, rd.z);
-                r = r + radiance(Ray{pixel, {0, 0, -1}}, 0, Xi) / samps;
+                r = r + radiance(Ray{ro, rd}, 0, Xi) / samps;
             }
             int i = (h - y - 1) * w + x;
             c[i] = c[i] + Vec(clamp(r.x), clamp(r.y), clamp(r.z));
