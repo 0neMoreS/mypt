@@ -4,6 +4,7 @@
 #define SPHERES 9
 #define MAXDEPTH 5
 #define LAMBERTALBEDO 0.5
+#define SCALE 1
 #define NAIR 1.0
 #define NGLASS 1.5
 #define REFRACTRATIO 0.7
@@ -28,7 +29,7 @@ struct Vec
     double moudle() { return sqrt(x * x + y * y + z * z); }
     Vec &norm() { return *this = *this * (1 / moudle()); }
     double dot(const Vec &b) const { return x * b.x + y * b.y + z * b.z; }
-    Vec operator%(const Vec &b) { return Vec(y * b.z - z * b.y, z * b.x - x * b.z, x * b.y - y * b.x); } // cross:
+    Vec operator%(const Vec &b) const { return Vec(y * b.z - z * b.y, z * b.x - x * b.z, x * b.y - y * b.x); } // cross:
 };
 struct Ray
 {
@@ -231,16 +232,27 @@ Vec radiance(const Ray &r, int depth, unsigned short *Xi)
 
 int main(int argc, char *argv[])
 {
-    int w = 800, h = 400, samps = argc == 2 ? atoi(argv[1]) : 30;
+    const int w = 400 * SCALE, h = 400 * SCALE, samps = argc == 2 ? atoi(argv[1]) : 30;
     FILE *f = fopen("image.ppm", "w"); // Write image to PPM file.
     fprintf(f, "P3\n%d %d\n%d\n", w, h, 255);
     Vec *c = new Vec[w * h];
-    Vec cam{0.0, 0.0, 50.0};
-    Vec lower_left_corner{2.0, 1.0, 49.0};
-    Vec horizontal{-4.0, 0.0, 0.0};
-    Vec vertical{0.0, -2.0, 0.0};
+    const double near = 50.0;
+    const double far = 49.0;
+    const double vfov = 90.0;
+    const double w_ratio_h = 4 / 4;
+    const double half_height = tan(vfov / 2) * (near - far);
+    const double half_width = half_height * w_ratio_h;
+    const Vec vup{0.0, 1.0, 0.0};
+    const Vec look_at{0.0, 0.0, 49};
+    const Vec cam{0.0, 0.0, near};
+    const Vec cam_w = (look_at - cam).norm();
+    const Vec cam_u = (vup % cam_w).norm() * -1.0;
+    const Vec cam_v = cam_w % cam_u;
+    const Vec lower_left_corner = cam - cam_u * half_width - cam_v * half_height - cam_w;
+    const Vec horizontal = cam_u * -2 * half_width;
+    const Vec vertical = cam_v * -2 * half_height;
     Vec r;
-#pragma omp parallel for schedule(dynamic, 1) private(r)
+    // #pragma omp parallel for schedule(dynamic, 1) private(r)
     for (unsigned short y = 0; y < h; y++)
     {
         fprintf(stderr, "\rRendering (%d spp) %5.2f%%", samps, 100. * y / (h - 1));
@@ -252,6 +264,7 @@ int main(int argc, char *argv[])
             {
                 double dx = erand48(Xi);
                 double dy = erand48(Xi);
+                // translate pixel pos on film plane to world pos
                 Vec pixel = horizontal * ((double)(x + dx) / (double)w) + vertical * ((double)(y + dy) / (double)h) + lower_left_corner;
                 Vec ro = cam;
                 Vec rd = pixel - cam;
