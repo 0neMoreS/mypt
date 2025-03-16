@@ -245,14 +245,14 @@ int main(int argc, char *argv[])
     const Vec vup{0.0, 1.0, 0.0};
     const Vec look_at{0.0, 0.0, 49};
     const Vec cam{0.0, 0.0, near};
-    const Vec cam_w = (look_at - cam).norm();
-    const Vec cam_u = (vup % cam_w).norm() * -1.0;
+    const Vec cam_w = (cam - look_at).norm();
+    const Vec cam_u = (vup % cam_w).norm();
     const Vec cam_v = cam_w % cam_u;
     const Vec lower_left_corner = cam - cam_u * half_width - cam_v * half_height - cam_w;
-    const Vec horizontal = cam_u * -2 * half_width;
-    const Vec vertical = cam_v * -2 * half_height;
+    const Vec horizontal = cam_u * 2 * half_width;
+    const Vec vertical = cam_v * 2 * half_height;
     Vec r;
-    // #pragma omp parallel for schedule(dynamic, 1) private(r)
+#pragma omp parallel for schedule(dynamic, 1) private(r)
     for (unsigned short y = 0; y < h; y++)
     {
         fprintf(stderr, "\rRendering (%d spp) %5.2f%%", samps, 100. * y / (h - 1));
@@ -271,7 +271,7 @@ int main(int argc, char *argv[])
                 // printf("ro: %f, %f, %f \nrd: %f, %f, %f \n", ro.x, ro.y, ro.z, rd.x, rd.y, rd.z);
                 r = r + radiance(Ray{ro, rd}, 0, Xi) * (1.0 / samps);
             }
-            int i = y * w + (w - x);
+            int i = (h - y - 1) * w + x;
             c[i] = c[i] + Vec(clamp(r.x), clamp(r.y), clamp(r.z));
         }
     }
