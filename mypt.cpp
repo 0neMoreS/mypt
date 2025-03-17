@@ -173,7 +173,7 @@ Vec radiance(const Ray &r, int depth, unsigned short *Xi)
     // ========================== specular ==========================
     if (obj.refl == SPECULAR)
     {
-        return obj.e + f.mult(radiance(Ray{x, r.d - nl * 2 * nl.dot(r.d)}, depth, Xi)) * abs(nl.dot(r.d));
+        return obj.e + f.mult(radiance(Ray{x, r.d - nl * 2 * nl.dot(r.d)}, depth, Xi)) * -(nl.dot(r.d));
     }
     // ========================== diffuse ==========================
     else if (obj.refl == DIFFUSE)
@@ -182,8 +182,8 @@ Vec radiance(const Ray &r, int depth, unsigned short *Xi)
         double random_phi = acos(2 * erand48(Xi) - 1);
         double random_r = pow(erand48(Xi), 1.0 / 3);
         Vec random_dir{random_r * sin(random_theta) * cos(random_phi), random_r * sin(random_theta) * sin(random_phi), random_r * cos(random_theta)};
-        Vec output_dir = x + nl + random_dir;
-        return obj.e + f.mult(radiance(Ray{x, output_dir - x}, depth, Xi)) * abs(nl.dot(r.d)) * LAMBERTALBEDO / (3 * random_r * random_r * sin(random_phi) / 4 * M_PI);
+        Vec output_dir = nl + random_dir;
+        return obj.e + f.mult(radiance(Ray{x, output_dir}, depth, Xi)) * -(nl.dot(r.d)) * LAMBERTALBEDO / (3 * random_r * random_r * sin(random_phi) / 4 * M_PI);
     }
     // ========================== light ==========================
     else if (obj.refl == LIGHT)
@@ -193,27 +193,34 @@ Vec radiance(const Ray &r, int depth, unsigned short *Xi)
     // ========================== refraction ==========================
     else if (obj.refl == REFRACTION)
     {
-        // Inverse
+        bool glass_to_air = n.dot(r.d) > 0;
+        double cos_theta1 = nl.dot(r.d);
+        double n1_ratio_n2 = glass_to_air ? NGLASS / NAIR : NAIR / NGLASS;
+        double sin_theta2_2 = n1_ratio_n2 * n1_ratio_n2 * (1 - cos_theta1 * cos_theta1);
+
         // full reflection
-        bool air_to_glass = n.dot(r.d) > 0; // actually glass to air
-        double n_ratio = 0.0;
-        if (air_to_glass)
+        if (sin_theta2_2 > 1)
         {
-            n_ratio = NAIR / NGLASS;
-            if (pow(1 / n_ratio, 2.0) - pow(cos(nl.dot(r.d)), 2.0) + 1 < 0)
-            {
-                return obj.e + f.mult(radiance(Ray{x, r.d - nl * 2 * nl.dot(r.d)}, depth, Xi)) * abs(nl.dot(r.d));
-            }
+            return obj.e + f.mult(radiance(Ray{x, r.d - nl * 2 * nl.dot(r.d)}, depth, Xi)) * -(nl.dot(r.d));
         }
-        else
-        {
-            n_ratio = NAIR / NGLASS;
-        }
-        double sin_theta1 = (nl % r.d).moudle();
-        double sin_theta2 = n_ratio * sin_theta1;
-        double cos_theta2 = sqrt(1 - sin_theta2 * sin_theta2);
-        Vec output{nl.moudle() * cos_theta2, nl.moudle() * sin_theta2, r.d.z};
-        return obj.e + f.mult(radiance(Ray{x, output - x}, depth, Xi)) * abs(nl.dot(r.d));
+
+        Vec P = (r.d + nl * cos_theta1).norm();
+        Vec output_dir = P * sqrt(sin_theta2_2) - nl * sqrt(1.0 - sin_theta2_2);
+        output_dir.norm();
+        return obj.e + f.mult(radiance(Ray{x, output_dir}, depth, Xi)) * -(nl.dot(r.d));
+
+        // Ray reflRay(x, r.d - n * 2 * n.dot(r.d)); // Ideal dielectric REFRACTIONACTION
+        // bool into = n.dot(nl) > 0;                // Ray from outside going in?
+        // double nc = 1, nt = 1.5, nnt = into ? nc / nt : nt / nc, ddn = r.d.dot(nl), cos2t;
+        // if ((cos2t = 1 - nnt * nnt * (1 - ddn * ddn)) < 0) // Total internal reflection
+        //     return obj.e + f.mult(radiance(reflRay, depth, Xi));
+        // Vec tdir = (r.d * nnt - n * ((into ? 1 : -1) * (ddn * nnt + sqrt(cos2t)))).norm();
+        // double a = nt - nc, b = nt + nc, R0 = a * a / (b * b), c = 1 - (into ? -ddn : tdir.dot(n));
+        // double Re = R0 + (1 - R0) * c * c * c * c * c, Tr = 1 - Re, P = .25 + .5 * Re, RP = Re / P, TP = Tr / (1 - P);
+        // return obj.e + f.mult(depth > 2 ? (erand48(Xi) < P ? // Russian roulette
+        //                                        radiance(reflRay, depth, Xi) * RP
+        //                                                    : radiance(Ray(x, tdir), depth, Xi) * TP)
+        //                                 : radiance(reflRay, depth, Xi) * Re + radiance(Ray(x, tdir), depth, Xi) * Tr);
     }
     return Vec{};
 }
