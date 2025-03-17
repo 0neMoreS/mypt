@@ -12,4 +12,7 @@
     Why just using mult for integrate? -- just one direction of the 'input light' so we can ignore integrate!
 
 4. diffuse in radiance
-    sample in hemisphere and thus ignore integrate?
+    sample in hemisphere and thus ignore integrate -- no, actually the original smallpt is wrong, we need to divide pdf
+
+5. camera
+    learn it from 'ray tracing in one weekend'. The matrix on pbrt do not change the camera ray coordinate! So just sample on position on film plane, then link it with camera. And finally we got a perspective camera. But there are sth wrong in orthographic camera, need to figure out later.
