@@ -1,7 +1,7 @@
 #include <math.h>   // smallpt, a Path Tracer by Kevin Beason, 2008
 #include <stdlib.h> // Make : g++ -O3 -fopenmp smallpt.cpp -o smallpt
 #include <stdio.h>  //        Remove "-fopenmp" for g++ version < 4.2
-#define SPHERES 9
+#define SPHERES 8
 #define MAXDEPTH 5
 #define LAMBERTALBEDO 0.5
 #define SCALE 1
@@ -70,7 +70,8 @@ Sphere spheres[SPHERES] = {
     Sphere(1e5, Vec(1e5 - 50, 0, 0), Vec(), Vec(.75, .25, .25), DIFFUSE),  // Left
     Sphere(1e5, Vec(-1e5 + 50, 0, 0), Vec(), Vec(.25, .25, .75), DIFFUSE), // Rght
     Sphere(1e5, Vec(0, 0, 1e5 - 50), Vec(), Vec(.25, .75, .25), DIFFUSE),  // Back
-    Sphere(1e5, Vec(0, 0, -1e5 + 50), Vec(), Vec(.75, .25, .75), DIFFUSE), // Frnt
+    // Sphere(1e5, Vec(0, 0, -1e5 + 50), Vec(), Vec(.75, .25, .75), DIFFUSE), // Frnt
+    // Sphere(1e5, Vec(0, 0, -1e5 + 50), Vec(), Vec(.0, .0, .0), DIFFUSE),    // Frnt
     Sphere(1e5, Vec(0, 1e5 - 50, 0), Vec(), Vec(.25, .75, .75), DIFFUSE),  // Botm
     Sphere(1e5, Vec(0, -1e5 + 50, 0), Vec(), Vec(.75, .75, .25), DIFFUSE), // Top
     Sphere(16.5, Vec(-20, -18, -14), Vec(), Vec(1, 1, 1), SPECULAR),       // Mirr
