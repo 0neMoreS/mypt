@@ -98,7 +98,7 @@ Vec radiance(const Ray &r, int depth, unsigned short *Xi)
     else if (obj.refl == SPEC) // Ideal SPECULAR reflection
         return obj.e + f.mult(radiance(Ray(x, r.d - n * 2 * n.dot(r.d)), depth, Xi));
     Ray reflRay(x, r.d - n * 2 * n.dot(r.d)); // Ideal dielectric REFRACTION
-    bool into = n.dot(nl) > 0;                // Ray from outside going in?
+    bool into = n.dot(r.d) < 0;               // Ray from outside going in?
     double nc = 1, nt = 1.5, nnt = into ? nc / nt : nt / nc, ddn = r.d.dot(nl), cos2t;
     if ((cos2t = 1 - nnt * nnt * (1 - ddn * ddn)) < 0) // Total internal reflection
         return obj.e + f.mult(radiance(reflRay, depth, Xi));
