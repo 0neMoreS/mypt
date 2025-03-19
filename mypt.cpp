@@ -207,22 +207,23 @@ Vec radiance(const Ray &r, int depth, unsigned short *Xi)
     // ========================== refraction ==========================
     else if (obj.refl == REFRACTIVE)
     {
-        bool glass_to_air = n.dot(r.d) > 0;
-        double cos_theta1 = -nl.dot(r.d); // -nl.dot(r.d)
-        double n1 = glass_to_air ? NGLASS : NAIR;
-        double n2 = glass_to_air ? NAIR : NGLASS;
-        double max_theta1 = acos(sqrt(1 - n2 * n2 / n1 * n1));
+        bool air_to_glass = n.dot(r.d) < 0; // N = nl
+        double n1 = air_to_glass ? NAIR : NGLASS;
+        double n2 = air_to_glass ? NGLASS : NAIR;
         Vec reflect_output_dir = r.d - nl * 2 * nl.dot(r.d);
-        if (acos(cos_theta1) > max_theta1)
+        Vec L = r.d * -1.0;
+        double cos_theta1 = nl.dot(L);
+        if (sqrt(1 - cos_theta1 * cos_theta1) < n1 / n2)
         {
             // total reflection
             return obj.e + f.mult(radiance(Ray{x, reflect_output_dir}, depth, Xi));
         }
+        // double cos_theta2_2 = 1 - (n1 * n1 / n2 * n2) * (1 - cos_theta1 * cos_theta1);
+        // double sin_theta2_2 = (n1 * n1 / n2 * n2) * (1 - cos_theta1 * cos_theta1);
+        // Vec P = (r.d + nl * cos_theta1).norm();
+        // Vec refract_output_dir = (P * sqrt(sin_theta2_2) - nl * sqrt(1.0 - sin_theta2_2)).norm();
+        Vec refract_output_dir = nl * (n1 / n2 * nl.dot(L) - sqrt(1 - (n1 * n1 / n2 * n2) * (1 - nl.dot(L) * nl.dot(L)))) - L * (n1 / n2);
 
-        double sin_theta2_2 = n1 * n1 / n2 * n2 * (1 - cos_theta1 * cos_theta1);
-        Vec P = (r.d + nl * cos_theta1).norm();
-        Vec refract_output_dir = (P * sqrt(sin_theta2_2) - nl * sqrt(1.0 - sin_theta2_2)).norm();
-        refract_output_dir = (r.d * (n1 / n2) - n * ((glass_to_air ? -1 : 1) * (-cos_theta1 * (n1 / n2) + sqrt(1 - sin_theta2_2)))).norm();
         double R0 = (n1 - n2) * (n1 - n2) / (n1 + n2) * (n1 + n2);
         double R_theta = R0 + (1 - R0) * pow((1 - cos_theta1), 5.0);
         if (depth < 2)
