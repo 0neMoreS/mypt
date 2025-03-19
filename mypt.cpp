@@ -1,4 +1,4 @@
-#include <cmath>    // smallpt, a Path Tracer by Kevin Beason, 2008
+#include <math.h>   // smallpt, a Path Tracer by Kevin Beason, 2008
 #include <stdlib.h> // Make : g++ -O3 -fopenmp smallpt.cpp -o smallpt
 #include <stdio.h>  //        Remove "-fopenmp" for g++ version < 4.2
 #define SPHERES 9
@@ -129,10 +129,11 @@ Vec radiance(const Ray &r, int depth, unsigned short *Xi)
     Vec tdir = (r.d * nnt - n * ((into ? 1 : -1) * (ddn * nnt + sqrt(cos2t)))).norm();
     double a = nt - nc, b = nt + nc, R0 = a * a / (b * b), c = 1 - (into ? -ddn : tdir.dot(n));
     double Re = R0 + (1 - R0) * c * c * c * c * c, Tr = 1 - Re, P = .25 + .5 * Re, RP = Re / P, TP = Tr / (1 - P);
-    return obj.e + f.mult(depth > 2 ? (erand48(Xi) < P ? // Russian roulette
-                                           radiance(reflRay, depth, Xi) * RP
-                                                       : radiance(Ray(x, tdir), depth, Xi) * TP)
-                                    : radiance(reflRay, depth, Xi) * Re + radiance(Ray(x, tdir), depth, Xi) * Tr);
+    // return obj.e + f.mult(depth > 2 ? (erand48(Xi) < P ? // Russian roulette
+    //                                        radiance(reflRay, depth, Xi) * RP
+    //                                                    : radiance(Ray(x, tdir), depth, Xi) * TP)
+    //                                 : radiance(reflRay, depth, Xi) * Re + radiance(Ray(x, tdir), depth, Xi) * Tr);
+    return obj.e + f.mult(radiance(Ray(x, tdir), depth, Xi) * Tr);
 }
 #endif
 
@@ -141,7 +142,7 @@ Vec radiance(const Ray &r, int depth, unsigned short *Xi)
 {
     // ========================== intersect ==========================
     int id = -1;
-    int min_t = __INT_MAX__;
+    double min_t = 1e20;
     for (int i = 0; i < SPHERES; i++)
     {
         if (spheres[i].intersect(r) != 0 && spheres[i].intersect(r) < min_t)
@@ -169,7 +170,6 @@ Vec radiance(const Ray &r, int depth, unsigned short *Xi)
         else
             return obj.e; // R.R.
     }
-
     // ========================== specular ==========================
     if (obj.refl == SPECULAR)
     {
@@ -194,33 +194,22 @@ Vec radiance(const Ray &r, int depth, unsigned short *Xi)
     else if (obj.refl == REFRACTION)
     {
         bool glass_to_air = n.dot(r.d) > 0;
-        double cos_theta1 = -nl.dot(r.d);
+        double cos_theta1 = -nl.dot(r.d); // -nl.dot(r.d)
         double n1_ratio_n2 = glass_to_air ? NGLASS / NAIR : NAIR / NGLASS;
-        double sin_theta2_2 = n1_ratio_n2 * n1_ratio_n2 * (1 - cos_theta1 * cos_theta1);
-
-        // full reflection
-        if (asin(sqrt(sin_theta2_2)) > M_PI / 2)
+        double n2_ratio_n1 = glass_to_air ? NAIR / NGLASS : NGLASS / NAIR;
+        double max_theta1 = acos(sqrt(1 - n2_ratio_n1 * n2_ratio_n1));
+        if (acos(cos_theta1) > max_theta1)
         {
-            return obj.e + f.mult(radiance(Ray{x, r.d - nl * 2 * nl.dot(r.d)}, depth, Xi)) * -(nl.dot(r.d));
+            // full reflection
+            return obj.e + f.mult(radiance(Ray{x, r.d - nl * 2 * nl.dot(r.d)}, depth, Xi)) * cos_theta1;
         }
 
-        Vec P = (r.d + nl * cos_theta1).norm();
+        double sin_theta2_2 = n1_ratio_n2 * n1_ratio_n2 * (1 - cos_theta1 * cos_theta1);
+        Vec P = (r.d + nl * cos_theta1);
+        P.norm();
         Vec output_dir = P * sqrt(sin_theta2_2) - nl * sqrt(1.0 - sin_theta2_2);
         output_dir.norm();
-        return obj.e + f.mult(radiance(Ray{x, output_dir}, depth, Xi)) * -(nl.dot(r.d));
-
-        // Ray reflRay(x, r.d - n * 2 * n.dot(r.d)); // Ideal dielectric REFRACTIONACTION
-        // bool into = n.dot(nl) > 0;                // Ray from outside going in?
-        // double nc = 1, nt = 1.5, nnt = into ? nc / nt : nt / nc, ddn = r.d.dot(nl), cos2t;
-        // if ((cos2t = 1 - nnt * nnt * (1 - ddn * ddn)) < 0) // Total internal reflection
-        //     return obj.e + f.mult(radiance(reflRay, depth, Xi));
-        // Vec tdir = (r.d * nnt - n * ((into ? 1 : -1) * (ddn * nnt + sqrt(cos2t)))).norm();
-        // double a = nt - nc, b = nt + nc, R0 = a * a / (b * b), c = 1 - (into ? -ddn : tdir.dot(n));
-        // double Re = R0 + (1 - R0) * c * c * c * c * c, Tr = 1 - Re, P = .25 + .5 * Re, RP = Re / P, TP = Tr / (1 - P);
-        // return obj.e + f.mult(depth > 2 ? (erand48(Xi) < P ? // Russian roulette
-        //                                        radiance(reflRay, depth, Xi) * RP
-        //                                                    : radiance(Ray(x, tdir), depth, Xi) * TP)
-        //                                 : radiance(reflRay, depth, Xi) * Re + radiance(Ray(x, tdir), depth, Xi) * Tr);
+        return obj.e + f.mult(radiance(Ray{x, output_dir}, depth, Xi)) * cos_theta1;
     }
     return Vec{};
 }
@@ -271,7 +260,6 @@ int main(int argc, char *argv[])
             c[i] = c[i] + Vec(clamp(r.x), clamp(r.y), clamp(r.z));
         }
     }
-    printf("\nacos %f\n", sin(M_PI / 2));
     for (int i = 0; i < w * h; i++)
         fprintf(f, "%d %d %d ", toInt(c[i].x), toInt(c[i].y), toInt(c[i].z));
 }
