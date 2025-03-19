@@ -211,35 +211,33 @@ Vec radiance(const Ray &r, int depth, unsigned short *Xi)
         bool air_to_glass = n.dot(r.d) < 0; // N = nl
         double n1 = air_to_glass ? NAIR : NGLASS;
         double n2 = air_to_glass ? NGLASS : NAIR;
-        Vec reflect_output_dir = r.d - nl * 2 * nl.dot(r.d);
-        Vec L = r.d * -1.0;
-        double cos_theta1 = nl.dot(L);
-        double discriminant = 1.0 - (n1 * n1 / n2 * n2) * (1 - cos_theta1 * cos_theta1);
-
+        Vec reflect_output_dir = r.d - n * 2 * n.dot(r.d);
+        double cos_theta1 = nl.dot(r.d);
+        double discriminant = 1.0 - ((n1 * n1) / (n2 * n2)) * (1 - cos_theta1 * cos_theta1);
         if (discriminant < 0)
         {
             return obj.e + f.mult(radiance(Ray{x, reflect_output_dir}, depth, Xi));
         }
-
-        Vec refract_output_dir = (L - nl * cos_theta1) * n1 / n2 - nl * sqrt(discriminant);
-
-        double R0 = (n1 - n2) * (n1 - n2) / (n1 + n2) * (n1 + n2);
-        double R_theta = R0 + (1 - R0) * pow((1 - cos_theta1), 5.0);
+        // Vec refract_output_dir = (L - nl * cos_theta1) * n1 / n2 - nl * sqrt(discriminant);
+        Vec refract_output_dir = r.d * (n1 / n2) - nl * cos_theta1 * (n1 / n2) - nl * sqrt(discriminant);
+        double R0 = ((n1 - n2) * (n1 - n2)) / ((n1 + n2) * (n1 + n2));
+        double c = 1 - (air_to_glass ? -cos_theta1 : refract_output_dir.dot(n));
+        double Re = R0 + (1 - R0) * pow(c, 5.0);
         if (depth < 2)
         {
-            return obj.e + f.mult(radiance(Ray{x, refract_output_dir}, depth, Xi) * (1 - R_theta) + radiance(Ray{x, reflect_output_dir}, depth, Xi) * R_theta);
+            return obj.e + f.mult(radiance(Ray{x, refract_output_dir}, depth, Xi) * (1 - Re) + radiance(Ray{x, reflect_output_dir}, depth, Xi) * Re);
         }
         else
         {
-            double PR = .25 + .5 * R_theta;
+            double PR = .25 + .5 * Re;
             if (erand48(Xi) < PR)
             {
 
-                return obj.e + f.mult(radiance(Ray{x, reflect_output_dir}, depth, Xi) * R_theta) / PR;
+                return obj.e + f.mult(radiance(Ray{x, reflect_output_dir}, depth, Xi) * Re) / PR;
             }
             else
             {
-                return obj.e + f.mult(radiance(Ray{x, refract_output_dir}, depth, Xi) * (1 - R_theta)) / (1 - PR);
+                return obj.e + f.mult(radiance(Ray{x, refract_output_dir}, depth, Xi) * (1 - Re)) / (1 - PR);
             }
         }
     }
