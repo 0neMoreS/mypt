@@ -1,4 +1,4 @@
-#include <math.h>   // smallpt, a Path Tracer by Kevin Beason, 2008
+#include <cmath>    // smallpt, a Path Tracer by Kevin Beason, 2008
 #include <stdlib.h> // Make : g++ -O3 -fopenmp smallpt.cpp -o smallpt
 #include <stdio.h>  //        Remove "-fopenmp" for g++ version < 4.2
 #define SPHERES 9
@@ -194,12 +194,12 @@ Vec radiance(const Ray &r, int depth, unsigned short *Xi)
     else if (obj.refl == REFRACTION)
     {
         bool glass_to_air = n.dot(r.d) > 0;
-        double cos_theta1 = nl.dot(r.d);
+        double cos_theta1 = -nl.dot(r.d);
         double n1_ratio_n2 = glass_to_air ? NGLASS / NAIR : NAIR / NGLASS;
         double sin_theta2_2 = n1_ratio_n2 * n1_ratio_n2 * (1 - cos_theta1 * cos_theta1);
 
         // full reflection
-        if (sin_theta2_2 > 1)
+        if (asin(sqrt(sin_theta2_2)) > M_PI / 2)
         {
             return obj.e + f.mult(radiance(Ray{x, r.d - nl * 2 * nl.dot(r.d)}, depth, Xi)) * -(nl.dot(r.d));
         }
@@ -271,7 +271,7 @@ int main(int argc, char *argv[])
             c[i] = c[i] + Vec(clamp(r.x), clamp(r.y), clamp(r.z));
         }
     }
-
+    printf("\nacos %f\n", sin(M_PI / 2));
     for (int i = 0; i < w * h; i++)
         fprintf(f, "%d %d %d ", toInt(c[i].x), toInt(c[i].y), toInt(c[i].z));
 }
