@@ -6,7 +6,7 @@
 #define LAMBERTALBEDO 0.5
 #define SCALE 1
 #define NAIR 1.0
-#define NGLASS 1.5
+#define NGLASS 1.8
 
 // #define ORIGINCODE
 
@@ -170,7 +170,7 @@ Vec radiance(const Ray &r, int depth, unsigned short *Xi)
                                                         : f.z;
     if (++depth >= MAXDEPTH)
     {
-        if (depth > 16)
+        if (depth > 8)
         {
             return obj.e;
         }
@@ -213,16 +213,14 @@ Vec radiance(const Ray &r, int depth, unsigned short *Xi)
         Vec reflect_output_dir = r.d - nl * 2 * nl.dot(r.d);
         Vec L = r.d * -1.0;
         double cos_theta1 = nl.dot(L);
-        if (sqrt(1 - cos_theta1 * cos_theta1) < n1 / n2)
+        double discriminant = 1.0 - (n1 * n1 / n2 * n2) * (1 - cos_theta1 * cos_theta1);
+
+        if (discriminant < 0)
         {
-            // total reflection
             return obj.e + f.mult(radiance(Ray{x, reflect_output_dir}, depth, Xi));
         }
-        // double cos_theta2_2 = 1 - (n1 * n1 / n2 * n2) * (1 - cos_theta1 * cos_theta1);
-        // double sin_theta2_2 = (n1 * n1 / n2 * n2) * (1 - cos_theta1 * cos_theta1);
-        // Vec P = (r.d + nl * cos_theta1).norm();
-        // Vec refract_output_dir = (P * sqrt(sin_theta2_2) - nl * sqrt(1.0 - sin_theta2_2)).norm();
-        Vec refract_output_dir = nl * (n1 / n2 * nl.dot(L) - sqrt(1 - (n1 * n1 / n2 * n2) * (1 - nl.dot(L) * nl.dot(L)))) - L * (n1 / n2);
+
+        Vec refract_output_dir = (L - nl * cos_theta1) * n1 / n2 - nl * sqrt(discriminant);
 
         double R0 = (n1 - n2) * (n1 - n2) / (n1 + n2) * (n1 + n2);
         double R_theta = R0 + (1 - R0) * pow((1 - cos_theta1), 5.0);
