@@ -221,8 +221,8 @@ Vec radiance(const Ray &r, int depth, unsigned short *Xi)
         // Vec refract_output_dir = (L - nl * cos_theta1) * n1 / n2 - nl * sqrt(discriminant);
         Vec refract_output_dir = r.d * (n1 / n2) - nl * cos_theta1 * (n1 / n2) - nl * sqrt(discriminant);
         double R0 = ((n1 - n2) * (n1 - n2)) / ((n1 + n2) * (n1 + n2));
-        double c = 1 - (air_to_glass ? -cos_theta1 : refract_output_dir.dot(n));
-        double Re = R0 + (1 - R0) * pow(c, 5.0);
+        // double c = 1 - (air_to_glass ? -cos_theta1 : refract_output_dir.dot(n));
+        double Re = R0 + (1 - R0) * pow(1 + cos_theta1, 5.0);
         if (depth < 2)
         {
             return obj.e + f.mult(radiance(Ray{x, refract_output_dir}, depth, Xi) * (1 - Re) + radiance(Ray{x, reflect_output_dir}, depth, Xi) * Re);
