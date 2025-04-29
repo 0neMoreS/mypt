@@ -166,7 +166,7 @@ Vec radiance(const Ray &r, int depth, unsigned short *Xi)
     Vec x = r.o + r.d * min_t;
     Vec n = (x - obj.p).norm();
     Vec nl = n.dot(r.d) < 0 ? n : n * -1;
-    f = f * -(nl.dot(r.d)); // cos in rendering equation
+    // f = f * -(nl.dot(r.d)); // cos in rendering equation
     double p = f.x > f.y && f.x > f.z ? f.x : f.y > f.z ? f.y
                                                         : f.z;
     if (++depth >= MAXDEPTH)
@@ -198,7 +198,8 @@ Vec radiance(const Ray &r, int depth, unsigned short *Xi)
         double random_r = pow(erand48(Xi), 1.0 / 3);
         Vec random_dir{random_r * sin(random_theta) * cos(random_phi), random_r * sin(random_theta) * sin(random_phi), random_r * cos(random_theta)};
         Vec output_dir = nl + random_dir;
-        return obj.e + f.mult(radiance(Ray{x, output_dir}, depth, Xi)) * LAMBERTALBEDO / (3 * random_r * random_r * sin(random_phi) / 4 * M_PI);
+        // return obj.e + f.mult(radiance(Ray{x, output_dir}, depth, Xi)) * LAMBERTALBEDO / (3 * random_r * random_r * sin(random_phi) / 4 * M_PI);
+        return obj.e + f.mult(radiance(Ray{x, output_dir}, depth, Xi)) * LAMBERTALBEDO * -(nl.dot(r.d));
     }
     // ========================== light ==========================
     else if (obj.refl == LIGHT)
