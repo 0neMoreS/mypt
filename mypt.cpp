@@ -253,20 +253,21 @@ int main(int argc, char *argv[])
     fprintf(f, "P3\n%d %d\n%d\n", w, h, 255);
     Vec *c = new Vec[w * h];
     const double near = 50.0;
-    const double far = 49.0;
+    const double far = 10.0;
+    // const double far = 49.0;
     const double vfov = 90 * M_PI / 180;
     const double w_ratio_h = 4 / 4;
     const double half_height = tan(vfov / 2) * (near - far);
     const double half_width = half_height * w_ratio_h;
     const Vec vup{0.0, 1.0, 0.0};
-    const Vec look_at{0.0, 0.0, 49};
-    const Vec cam{0.0, 0.0, near};
-    const Vec cam_w = (cam - look_at).norm();
-    const Vec cam_u = (vup % cam_w).norm();
-    const Vec cam_v = cam_w % cam_u;
-    const Vec lower_left_corner = cam - cam_u * half_width - cam_v * half_height - cam_w;
-    const Vec horizontal = cam_u * 2 * half_width;
-    const Vec vertical = cam_v * 2 * half_height;
+    const Vec look_at{10.0, -10.0, 0.0};
+    const Vec cam{0.0, 0.0, near + 10.0};
+    const Vec cam_z = (cam - look_at).norm();
+    const Vec cam_x = (vup % cam_z).norm();
+    const Vec cam_y = cam_z % cam_x;
+    const Vec lower_left_corner = cam - cam_x * half_width - cam_y * half_height - cam_z;
+    const Vec horizontal = cam_x * 2 * half_width;
+    const Vec vertical = cam_y * 2 * half_height;
     Vec r;
 #pragma omp parallel for schedule(dynamic, 1) private(r)
     for (unsigned short y = 0; y < h; y++)
@@ -285,7 +286,8 @@ int main(int argc, char *argv[])
                 Vec ro = cam;
                 Vec rd = pixel - cam;
                 // printf("ro: %f, %f, %f \nrd: %f, %f, %f \n", ro.x, ro.y, ro.z, rd.x, rd.y, rd.z);
-                r = r + radiance(Ray{ro, rd}, 0, Xi) / samps;
+                r = r + radiance(Ray{pixel, cam_z * -1.0}, 0, Xi) / samps;
+                // r = r + radiance(Ray{ro, rd}, 0, Xi) / samps;
             }
             int i = (h - y - 1) * w + x;
             c[i] = c[i] + Vec(clamp(r.x), clamp(r.y), clamp(r.z));
