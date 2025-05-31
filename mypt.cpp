@@ -193,13 +193,19 @@ Vec radiance(const Ray &r, int depth, unsigned short *Xi)
     // ========================== diffuse ==========================
     else if (obj.refl == DIFFUSE)
     { // Ideal DIFFUSEUSE reflection
-        double random_theta = 2 * M_PI * erand48(Xi);
-        double random_phi = acos(2 * erand48(Xi) - 1);
-        double random_r = pow(erand48(Xi), 1.0 / 3);
-        Vec random_dir{random_r * sin(random_theta) * cos(random_phi), random_r * sin(random_theta) * sin(random_phi), random_r * cos(random_theta)};
-        Vec output_dir = nl + random_dir;
-        // return obj.e + f.mult(radiance(Ray{x, output_dir}, depth, Xi)) * LAMBERTALBEDO / (3 * random_r * random_r * sin(random_phi) / 4 * M_PI);
-        return obj.e + f.mult(radiance(Ray{x, output_dir}, depth, Xi)) * LAMBERTALBEDO * -(nl.dot(r.d));
+        // ====================== WRONG Ver. ======================
+        // double random_theta = 2 * M_PI * erand48(Xi);
+        // double random_phi = acos(2 * erand48(Xi) - 1);
+        // double random_r = pow(erand48(Xi), 1.0 / 3);
+        // Vec random_dir{random_r * sin(random_theta) * cos(random_phi), random_r * sin(random_theta) * sin(random_phi), random_r * cos(random_theta)};
+        // Vec output_dir = nl + random_dir;
+        // return obj.e + f.mult(radiance(Ray{x, output_dir}, depth, Xi)) * LAMBERTALBEDO / (3 * random_r * random_r * sin(random_phi) / 4 * M_PI) * -(nl.dot(r.d));
+        // ====================== WRONG Ver. ======================
+        double random_theta = 0.5 * acos(1 - 2 * erand48(Xi));
+        double random_phi = 2 * M_PI * erand48(Xi);
+        Vec w = nl, u = (Vec(1, 0, 0) % w).norm(), v = w % u;
+        Vec output_dir = u * sin(random_theta) * cos(random_phi) + v * sin(random_theta) * sin(random_phi) + w * cos(random_theta);
+        return obj.e + f.mult(radiance(Ray{x, output_dir}, depth, Xi)) * LAMBERTALBEDO;
     }
     // ========================== light ==========================
     else if (obj.refl == LIGHT)
@@ -253,8 +259,8 @@ int main(int argc, char *argv[])
     fprintf(f, "P3\n%d %d\n%d\n", w, h, 255);
     Vec *c = new Vec[w * h];
     const double near = 50.0;
-    const double far = 10.0;
-    // const double far = 49.0;
+    // const double far = 10.0;
+    const double far = 49.0;
     const double vfov = 90 * M_PI / 180;
     const double w_ratio_h = 4 / 4;
     const double half_height = tan(vfov / 2) * (near - far);
@@ -286,8 +292,8 @@ int main(int argc, char *argv[])
                 Vec ro = cam;
                 Vec rd = pixel - cam;
                 // printf("ro: %f, %f, %f \nrd: %f, %f, %f \n", ro.x, ro.y, ro.z, rd.x, rd.y, rd.z);
-                r = r + radiance(Ray{pixel, cam_z * -1.0}, 0, Xi) / samps;
-                // r = r + radiance(Ray{ro, rd}, 0, Xi) / samps;
+                // r = r + radiance(Ray{pixel, cam_z * -1.0}, 0, Xi) / samps;
+                r = r + radiance(Ray{ro, rd}, 0, Xi) / samps;
             }
             int i = (h - y - 1) * w + x;
             c[i] = c[i] + Vec(clamp(r.x), clamp(r.y), clamp(r.z));
