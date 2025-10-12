@@ -1,2 +1,2 @@
-g++ -O3 -fopenmp mypt.cpp -o mypt
-./mypt 1024
+g++ -O3 -fopenmp main.cpp -o main
+./main 1024

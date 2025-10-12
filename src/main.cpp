@@ -6,7 +6,7 @@
 #define LAMBERTALBEDO 0.5
 #define SCALE 1
 #define NAIR 1.0
-#define NGLASS 1.8
+#define NGLASS 1.5
 
 // #define ORIGINCODE
 
@@ -105,14 +105,10 @@ Vec radiance(const Ray &r, int depth, unsigned short *Xi)
         return Vec();                // if miss, return black
     const Sphere &obj = spheres[id]; // the hit object
     Vec x = r.o + r.d * t, n = (x - obj.p).norm(), nl = n.dot(r.d) < 0 ? n : n * -1, f = obj.c;
-    double p = f.x > f.y && f.x > f.z ? f.x : f.y > f.z ? f.y
-                                                        : f.z; // max refl
+    double p = std::max(f.x, std::max(f.y, f.z));
     if (++depth > 5)
     {
-        if (depth > 16)
-        {
-            return obj.e;
-        }
+        p = std::min(p, 0.95);
         if (erand48(Xi) < p)
             f = f * (1 / p);
         else
@@ -123,7 +119,7 @@ Vec radiance(const Ray &r, int depth, unsigned short *Xi)
         double r1 = 2 * M_PI * erand48(Xi), r2 = erand48(Xi), r2s = sqrt(r2);
         Vec w = nl, u = ((fabs(w.x) > .1 ? Vec(0, 1) : Vec(1)) % w).norm(), v = w % u;
         Vec d = (u * cos(r1) * r2s + v * sin(r1) * r2s + w * sqrt(1 - r2)).norm();
-        return obj.e + f.mult(radiance(Ray(x, d), depth, Xi));
+        return obj.e + f.mult(radiance(Ray(x, d), depth, Xi)) * LAMBERTALBEDO;
     }
     else if (obj.refl == SPECULAR) // Ideal SPECULARULAR reflection
         return obj.e + f.mult(radiance(Ray(x, r.d - n * 2 * n.dot(r.d)), depth, Xi));
@@ -167,14 +163,10 @@ Vec radiance(const Ray &r, int depth, unsigned short *Xi)
     Vec n = (x - obj.p).norm();
     Vec nl = n.dot(r.d) < 0 ? n : n * -1;
     // f = f * -(nl.dot(r.d)); // cos in rendering equation
-    double p = f.x > f.y && f.x > f.z ? f.x : f.y > f.z ? f.y
-                                                        : f.z;
+    double p = std::max(f.x, std::max(f.y, f.z));
     if (++depth >= MAXDEPTH)
     {
-        if (depth > 8)
-        {
-            return obj.e;
-        }
+        p = std::min(p, 0.95);
         if (erand48(Xi) < p)
         {
 
@@ -225,10 +217,8 @@ Vec radiance(const Ray &r, int depth, unsigned short *Xi)
         {
             return obj.e + f.mult(radiance(Ray{x, reflect_output_dir}, depth, Xi));
         }
-        // Vec refract_output_dir = (L - nl * cos_theta1) * n1 / n2 - nl * sqrt(discriminant);
-        Vec refract_output_dir = r.d * (n1 / n2) - nl * cos_theta1 * (n1 / n2) - nl * sqrt(discriminant);
+        Vec refract_output_dir = (r.d * (n1 / n2) - nl * ((cos_theta1 * (n1 / n2) + sqrt(discriminant)))).norm();
         double R0 = ((n1 - n2) * (n1 - n2)) / ((n1 + n2) * (n1 + n2));
-        // double c = 1 - (air_to_glass ? -cos_theta1 : refract_output_dir.dot(n));
         double Re = R0 + (1 - R0) * pow(1 + cos_theta1, 5.0);
         if (depth < 2)
         {
