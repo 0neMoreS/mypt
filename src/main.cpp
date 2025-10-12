@@ -1,4 +1,4 @@
-#include <math.h>   // smallpt, a Path Tracer by Kevin Beason, 2008
+#include <math.h>
 #include <stdlib.h> // Make : g++ -O3 -fopenmp smallpt.cpp -o smallpt
 #include <stdio.h>  //        Remove "-fopenmp" for g++ version < 4.2
 #define SPHERES 8
@@ -266,7 +266,7 @@ int main(int argc, char *argv[])
     const double half_height = tan(vfov / 2) * (near - far);
     const double half_width = half_height * w_ratio_h;
     const Vec vup{0.0, 1.0, 0.0};
-    const Vec look_at{10.0, -10.0, 0.0};
+    const Vec look_at{0.0, 0.0, 0.0};
     const Vec cam{0.0, 0.0, near + 10.0};
     const Vec cam_z = (cam - look_at).norm();
     const Vec cam_x = (vup % cam_z).norm();
