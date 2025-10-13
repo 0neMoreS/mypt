@@ -1,4 +1,3 @@
-#pragma once
 #include <core.h>
 #include <camera.h>
 #include <image.h>
