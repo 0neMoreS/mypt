@@ -1,43 +1,36 @@
 #pragma once
 #include "core.h"
-#include "ray.h"
 
 struct Camera
 {
-    Vec origin;
-    Vec lower_left_corner;
-    Vec horizontal;
-    Vec vertical;
-    Vec u, v, w;
-    double lens_radius;
+    Vec3f origin;
+    Vec3f lower_left_corner;
+    Vec3f horizontal;
+    Vec3f vertical;
+    Vec3f u, v, w;
 
     Camera(
-        Vec lookfrom, Vec lookat, Vec vup,
+        Vec3f lookfrom, Vec3f lookat, Vec3f vup,
         double vfov,
         double aspect,
-        double near, double far,
-        double aperture = 0.0)
+        double near, double far)
     {
-        lens_radius = aperture / 2;
         double theta = vfov * M_PI / 180;
         double half_height = tan(theta / 2) * (near - far);
         double half_width = aspect * half_height;
 
         origin = lookfrom;
-        w = (lookfrom - lookat).norm();
-        u = (vup % w).norm();
-        v = w % u;
+        w = normalize(lookfrom - lookat);
+        u = normalize(cross(vup, w));
+        v = cross(w, u);
 
         lower_left_corner = origin - u * half_width - v * half_height - w;
         horizontal = u * 2 * half_width;
         vertical = v * 2 * half_height;
     }
 
-    Ray getRay(double s, double t, unsigned short *Xi)
+    void getRay(const Vec2f &uv, Ray &ray)
     {
-        Vec rd = Vec();
-        Vec offset = Vec();
-        return Ray(origin + offset,
-                   (lower_left_corner + horizontal * s + vertical * t - origin - offset).norm());
+        ray = Ray(origin, normalize(lower_left_corner + uv[0] * horizontal + uv[1] * vertical - origin));
     }
 };
