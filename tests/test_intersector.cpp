@@ -10,7 +10,7 @@ int main()
   Camera camera(Vec3f(0, 0, 5), Vec3f(0, 0, 0), Vec3f(0, 1, 0), 45.0, float(w) / float(h), 1.0, 100.0);
 
   Scene scene;
-  scene.loadModel("CornellBox-Original.obj");
+  scene.loadModel("../models/CornellBox-Original.obj");
   scene.build();
 
 #pragma omp parallel for schedule(dynamic, 1)

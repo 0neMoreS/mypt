@@ -120,20 +120,27 @@ public:
     clear();
 
     tinyobj::ObjReaderConfig reader_config;
-    reader_config.mtl_search_path = "./";
+    // reader_config.mtl_search_path = "./";
     reader_config.triangulate = true;
+
+    std::filesystem::path obj_dir = filepath.parent_path();
+    std::filesystem::path mtl_search = obj_dir / reader_config.mtl_search_path;
+    std::cout << "[tinyobj] Searching OBJ file in: " << std::filesystem::absolute(filepath) << std::endl;
+    std::cout << "[tinyobj] Searching MTL file in: " << std::filesystem::absolute(mtl_search) << std::endl;
 
     tinyobj::ObjReader reader;
     if (!reader.ParseFromFile(filepath.generic_string(), reader_config))
     {
       if (!reader.Error().empty())
       {
+        std::cerr << "[tinyobj] Error: " << reader.Error() << std::endl;
       }
       return;
     }
 
     if (!reader.Warning().empty())
     {
+      std::cout << "[tinyobj] Warning: " << reader.Warning() << std::endl;
     }
 
     const auto &attrib = reader.GetAttrib();
@@ -287,6 +294,8 @@ public:
       primitives.emplace_back(&this->triangles[faceID], this->bxdfs[faceID],
                               light);
     }
+
+    std::cout << "Loaded model finished: " << filepath << std::endl;
   }
 
   uint32_t nVertices() const { return vertices.size() / 3; }
