@@ -10,8 +10,9 @@ if(NOT OpenMP_CXX_FOUND)
 endif()
 
 # Embree3
-# set(embree_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/externals/embree-3.12.2.x86_64.linux/lib/cmake/embree-3.12.2")
-find_package(embree CONFIG REQUIRED)
+find_package(embree 3.12 REQUIRED
+    PATHS /home/alex-linux/computer-graphics/mypt/src/external/embree-3.12.2.x86_64.linux/lib/cmake/embree-3.12.2
+    NO_DEFAULT_PATH)
 if (${embree_FOUND})
   message(STATUS "Found Embree")
 else()
@@ -19,11 +20,11 @@ else()
 endif()
 
 # externals
-add_subdirectory("externals")
+add_subdirectory("src/external")
 
 # pm(photon_mapping)
 add_library(pm INTERFACE)
-target_include_directories(pm INTERFACE "include")
+target_include_directories(pm INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/src/include")
 target_compile_features(pm INTERFACE cxx_std_20)
 set_target_properties(pm PROPERTIES CXX_EXTENSIONS OFF)
 

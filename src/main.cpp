@@ -10,7 +10,7 @@ int main(int argc, char *argv[])
     Image image(w, h);
     Camera camera(Vec3f(0, 0, 5), Vec3f(0, 0, 0), Vec3f(0, 1, 0), 45.0, float(w) / float(h), 1.0, 100.0);
 
-#pragma omp parallel for schedule(dynamic, 1) private(r)
+#pragma omp parallel for schedule(dynamic, 1)
     for (unsigned short y = 0; y < h; y++)
     {
         fprintf(stderr, "\rRendering (%d spp) %5.2f%%", n_samples, 100. * y / (h - 1));
