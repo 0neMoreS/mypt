@@ -34,3 +34,4 @@ target_link_libraries(pm INTERFACE embree)
 
 # examples
 add_subdirectory("src")
+add_subdirectory("tests")
