@@ -295,7 +295,10 @@ public:
                               light);
     }
 
-    std::cout << "Loaded model finished: " << filepath << std::endl;
+    std::cout << "[tinyobj] vertices: " << nVertices() << std::endl;
+    std::cout << "[tinyobj] faces: " << nFaces() << std::endl;
+    std::cout << "[tinyobj] materials: " << materials.size() << std::endl;
+    std::cout << "[tinyobj] lights: " << lights.size() << std::endl;
   }
 
   uint32_t nVertices() const { return vertices.size() / 3; }
