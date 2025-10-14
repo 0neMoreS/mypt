@@ -13,24 +13,21 @@ int main()
   scene.loadModel("../models/CornellBox-Original.obj");
   scene.build();
 
-  Camera camera(Vec3f(0, 1.f, 7.f), Vec3f(0, 1.f, -1.f), Vec3f(0, 1, 0), 45.f, float(width) / float(height), 0.1f, 100.f);
+  Camera camera(Vec3f(0, 1.f, 7.f), Vec3f(0, 1.f, -1.f), Vec3f(0, -1.f, 0), 25.f, float(width) / float(height));
 
-  for (int i = 0; i < height; ++i)
+#pragma omp parallel for schedule(dynamic, 1)
+  for (unsigned short i = 0; i < height; i++)
   {
-    for (int j = 0; j < width; ++j)
+    fprintf(stderr, "\rRendering (%d spp) %5.2f%%", n_samples, 100. * i / (height - 1));
+    for (unsigned short j = 0; j < width; j++)
     {
-      const float u = (2.0f * j - width) / height;
-      const float v = (2.0f * i - height) / height;
-
       Ray ray;
-      camera.sampleRay(Vec2f(u, v), ray);
+      camera.sampleRay(Vec2f(float(j) / width, float(i) / height), ray);
       IntersectInfo info;
       if (scene.intersect(ray, info))
-      {
         image.setPixel(i, j, 0.5f * (info.surfaceInfo.shadingNormal + 1.0f));
-      }
-
-      image.setPixel(i, j, Vec3f(0));
+      else
+        image.setPixel(i, j, Vec3f(0));
     }
   }
 
@@ -56,7 +53,7 @@ int main()
   {
     for (int j = 0; j < width; ++j)
     {
-      const float u = (2.0f * j - width) / height;
+      const float u = (2.0f * j - width) / width;
       const float v = (2.0f * i - height) / height;
 
       Ray ray;

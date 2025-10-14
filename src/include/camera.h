@@ -5,35 +5,31 @@
 class Camera
 {
 public:
-    Vec3f origin;
+    Vec3f position;
     Vec3f lower_left_corner;
     Vec3f horizontal;
     Vec3f vertical;
     Vec3f right, up, forward;
 
-    Camera(
-        Vec3f lookfrom, Vec3f lookat, Vec3f vup,
-        double vfov,
-        double aspect,
-        double near, double far)
+    Camera(Vec3f lookfrom, Vec3f lookat, Vec3f vup, double vfov, double aspect)
     {
         double theta = vfov * M_PI / 180;
-        double half_height = tan(theta / 2) * (near - far);
+        double half_height = tan(theta / 2);
         double half_width = aspect * half_height;
 
-        origin = lookfrom;
+        position = lookfrom;
         forward = normalize(lookat - lookfrom);
-        right = normalize(cross(forward, vup));
-        up = cross(right, forward);
+        right = -normalize(cross(forward, vup));
+        up = -normalize(cross(right, forward));
 
-        lower_left_corner = origin - right * half_width - up * half_height - forward;
+        lower_left_corner = position - right * half_width - up * half_height + forward;
         horizontal = right * 2 * half_width;
         vertical = up * 2 * half_height;
 
         std::cout << std::fixed << std::setprecision(3);
 
         std::cout << "[Camera] position: ("
-                  << origin[0] << ", " << origin[1] << ", " << origin[2] << ")\n";
+                  << position[0] << ", " << position[1] << ", " << position[2] << ")\n";
 
         std::cout << "[Camera] forward: ("
                   << forward[0] << ", " << forward[1] << ", " << forward[2] << ")\n";
@@ -43,11 +39,20 @@ public:
 
         std::cout << "[Camera] up: ("
                   << up[0] << ", " << up[1] << ", " << up[2] << ")\n";
+
+        std::cout << "[Camera] vfov: " << vfov << " degrees\n";
+
+        std::cout << "[Camera] half_height: " << half_height << "\n";
+
+        std::cout << "[Camera] half_width: " << half_width << "\n";
+
+        std::cout << "[Camera] lower_left_corner: ("
+                  << lower_left_corner[0] << ", " << lower_left_corner[1] << ", " << lower_left_corner[2] << ")\n";
     }
 
     void sampleRay(const Vec2f &uv, Ray &ray)
     {
-        ray = Ray(origin, normalize(lower_left_corner + uv[0] * horizontal + uv[1] * vertical - origin));
+        ray = Ray(position, normalize(lower_left_corner + uv[0] * horizontal + uv[1] * vertical - position));
     }
 };
 #endif
