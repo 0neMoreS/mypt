@@ -1,55 +1,58 @@
 #pragma once
 #include "core.h"
 
-// class Camera
-// {
-// public:
-//     Vec3f origin;
-//     Vec3f lower_left_corner;
-//     Vec3f horizontal;
-//     Vec3f vertical;
-//     Vec3f u, v, w;
+#ifndef OLD
+class Camera
+{
+public:
+    Vec3f origin;
+    Vec3f lower_left_corner;
+    Vec3f horizontal;
+    Vec3f vertical;
+    Vec3f right, up, forward;
 
-//     Camera(
-//         Vec3f lookfrom, Vec3f lookat, Vec3f vup,
-//         double vfov,
-//         double aspect,
-//         double near, double far)
-//     {
-//         double theta = vfov * M_PI / 180;
-//         double half_height = tan(theta / 2) * (near - far);
-//         double half_width = aspect * half_height;
+    Camera(
+        Vec3f lookfrom, Vec3f lookat, Vec3f vup,
+        double vfov,
+        double aspect,
+        double near, double far)
+    {
+        double theta = vfov * M_PI / 180;
+        double half_height = tan(theta / 2) * (near - far);
+        double half_width = aspect * half_height;
 
-//         origin = lookfrom;
-//         w = normalize(lookat - lookfrom);
-//         u = normalize(cross(w, vup));
-//         v = cross(u, w);
+        origin = lookfrom;
+        forward = normalize(lookat - lookfrom);
+        right = normalize(cross(forward, vup));
+        up = cross(right, forward);
 
-//         lower_left_corner = origin - u * half_width - v * half_height - w;
-//         horizontal = u * 2 * half_width;
-//         vertical = v * 2 * half_height;
+        lower_left_corner = origin - right * half_width - up * half_height - forward;
+        horizontal = right * 2 * half_width;
+        vertical = up * 2 * half_height;
 
-//         std::cout << std::fixed << std::setprecision(3);
+        std::cout << std::fixed << std::setprecision(3);
 
-//         std::cout << "[Camera] position: ("
-//                   << origin[0] << ", " << origin[1] << ", " << origin[2] << ")\n";
+        std::cout << "[Camera] position: ("
+                  << origin[0] << ", " << origin[1] << ", " << origin[2] << ")\n";
 
-//         std::cout << "[Camera] forward: ("
-//                   << w[0] << ", " << w[1] << ", " << w[2] << ")\n";
+        std::cout << "[Camera] forward: ("
+                  << forward[0] << ", " << forward[1] << ", " << forward[2] << ")\n";
 
-//         std::cout << "[Camera] right: ("
-//                   << u[0] << ", " << u[1] << ", " << u[2] << ")\n";
+        std::cout << "[Camera] right: ("
+                  << right[0] << ", " << right[1] << ", " << right[2] << ")\n";
 
-//         std::cout << "[Camera] up: ("
-//                   << v[0] << ", " << v[1] << ", " << v[2] << ")\n";
-//     }
+        std::cout << "[Camera] up: ("
+                  << up[0] << ", " << up[1] << ", " << up[2] << ")\n";
+    }
 
-//     void getRay(const Vec2f &uv, Ray &ray)
-//     {
-//         ray = Ray(origin, normalize(lower_left_corner + uv[0] * horizontal + uv[1] * vertical - origin));
-//     }
-// };
+    void sampleRay(const Vec2f &uv, Ray &ray)
+    {
+        ray = Ray(origin, normalize(lower_left_corner + uv[0] * horizontal + uv[1] * vertical - origin));
+    }
+};
+#endif
 
+#ifdef OLD
 class Camera
 {
 private:
@@ -70,6 +73,17 @@ public:
 
         // compute focal length from FOV
         focal_length = 1.0f / std::tan(0.5f * FOV);
+
+        std::cout << std::fixed << std::setprecision(3);
+        std::cout << "[Camera] position: ("
+                  << position[0] << ", " << position[1] << ", " << position[2] << ")\n";
+        std::cout << "[Camera] forward: ("
+                  << forward[0] << ", " << forward[1] << ", " << forward[2] << ")\n";
+        std::cout << "[Camera] right: ("
+                  << right[0] << ", " << right[1] << ", " << right[2] << ")\n";
+        std::cout << "[Camera] up: ("
+                  << up[0] << ", " << up[1] << ", " << up[2] << ")\n";
+        std::cout << "[Camera] FOV: " << FOV * 180.0f / PI << " degrees\n";
     }
 
     // sample ray emitting from the given sensor coordinate
@@ -83,3 +97,4 @@ public:
         return true;
     }
 };
+#endif

@@ -6,6 +6,8 @@
 #include <iostream>
 #include <iomanip>
 
+// #define OLD
+
 constexpr float PI = 3.14159265359;
 
 constexpr float PI_MUL_2 = 2.0f * PI;

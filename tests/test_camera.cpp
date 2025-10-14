@@ -1,39 +1,36 @@
-// #include "camera.h"
-// #include "image.h"
-// #include "core.h"
-// #include "sampler.h"
+#include "camera.h"
+#include "image.h"
+#include "core.h"
+#include "sampler.h"
 
-// int main()
-// {
-//   const int w = 400, h = 400;
-//   const int n_samples = 32;
-//   Image image(w, h);
-//   Camera camera(Vec3f(0, 0, 5), Vec3f(0, 0, 0), Vec3f(0, 1, 0), 45.0, float(w) / float(h), 1.0, 100.0);
+#ifndef OLD
+int main()
+{
+  const int height = 512, width = 512;
+  const int n_samples = 32;
+  Image image(width, height);
+  Camera camera(Vec3f(0, 0, 0), Vec3f(0, 0, -1.f), Vec3f(0, 1, 0), 45.0, float(width) / float(height), 1.0, 100.0);
 
-// #pragma omp parallel for schedule(dynamic, 1)
-//   for (unsigned short y = 0; y < h; y++)
-//   {
-//     fprintf(stderr, "\rRendering (%d spp) %5.2f%%", n_samples, 100. * y / (h - 1));
-//     for (unsigned short x = 0; x < w; x++)
-//     {
-//       UniformSampler sampler((y * w + x) * 9781 + 1);
-//       for (unsigned short s = 0; s < n_samples; s++)
-//       {
-//         float dx = sampler.getNext1D();
-//         float dy = sampler.getNext1D();
-//         Ray r;
-//         camera.getRay(Vec2f(float(x) / w, float(y) / h), r);
+#pragma omp parallel for schedule(dynamic, 1)
+  for (unsigned short i = 0; i < height; i++)
+  {
+    fprintf(stderr, "\rRendering (%d spp) %5.2f%%", n_samples, 100. * i / (height - 1));
+    for (unsigned short j = 0; j < width; j++)
+    {
+      Ray ray;
+      camera.sampleRay(Vec2f(float(j) / width, float(i) / height), ray);
 
-//         image.setPixel(y, x, 0.5f * (r.direction + 1.0f));
-//       }
-//     }
-//   }
+      image.setPixel(i, j, 0.5f * (ray.direction + 1.0f));
+    }
+  }
 
-//   image.writePPM("output.ppm");
+  image.writePPM("output_test_camera.ppm");
 
-//   return 0;
-// }
+  return 0;
+}
+#endif
 
+#ifdef OLD
 #include "camera.h"
 #include "image.h"
 
@@ -49,12 +46,9 @@ int main()
   {
     for (int j = 0; j < width; ++j)
     {
-      const float u = (2.0f * j - width) / height;
-      const float v = (2.0f * i - height) / height;
-
       Ray ray;
       float pdf;
-      if (camera.sampleRay(Vec2f(u, v), ray, pdf))
+      if (camera.sampleRay(Vec2f(float(j) / width, float(i) / height), ray, pdf))
       {
         image.setPixel(i, j, 0.5f * (ray.direction + 1.0f));
       }
@@ -65,7 +59,8 @@ int main()
     }
   }
 
-  image.writePPM("output.ppm");
+  image.writePPM("output_test_camera_old.ppm");
 
   return 0;
 }
+#endif
