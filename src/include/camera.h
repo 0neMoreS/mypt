@@ -19,8 +19,8 @@ public:
 
         position = lookfrom;
         forward = normalize(lookat - lookfrom);
-        right = -normalize(cross(forward, vup));
-        up = -normalize(cross(right, forward));
+        right = normalize(cross(forward, vup));
+        up = normalize(cross(right, forward));
 
         lower_left_corner = position - right * half_width - up * half_height + forward;
         horizontal = right * 2 * half_width;

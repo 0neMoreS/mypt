@@ -13,7 +13,7 @@ int main()
   scene.loadModel("../models/CornellBox-Original.obj");
   scene.build();
 
-  Camera camera(Vec3f(0, 1.f, 7.f), Vec3f(0, 1.f, -1.f), Vec3f(0, -1.f, 0), 25.f, float(width) / float(height));
+  Camera camera(Vec3f(0, 1.f, 7.f), Vec3f(0, 1.f, -1.f), Vec3f(0, 1.f, 0), 25.f, float(width) / float(height));
 
 #pragma omp parallel for schedule(dynamic, 1)
   for (unsigned short i = 0; i < height; i++)
@@ -25,9 +25,9 @@ int main()
       camera.sampleRay(Vec2f(float(j) / width, float(i) / height), ray);
       IntersectInfo info;
       if (scene.intersect(ray, info))
-        image.setPixel(i, j, 0.5f * (info.surfaceInfo.shadingNormal + 1.0f));
+        image.setPixel((height - i - 1), (width - j - 1), 0.5f * (info.surfaceInfo.shadingNormal + 1.0f));
       else
-        image.setPixel(i, j, Vec3f(0));
+        image.setPixel((height - i - 1), (width - j - 1), Vec3f(0));
     }
   }
 
