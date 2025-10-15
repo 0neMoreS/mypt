@@ -50,9 +50,10 @@ public:
                   << lower_left_corner[0] << ", " << lower_left_corner[1] << ", " << lower_left_corner[2] << ")\n";
     }
 
-    void sampleRay(const Vec2f &uv, Ray &ray)
+    void sampleRay(const Vec2f &uv, Ray &ray, float &pdf) const
     {
         ray = Ray(position, normalize(lower_left_corner + uv[0] * horizontal + uv[1] * vertical - position));
+        pdf = 1.0f;
     }
 };
 #endif

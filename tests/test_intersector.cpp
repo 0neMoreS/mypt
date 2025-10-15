@@ -22,7 +22,8 @@ int main()
     for (unsigned short j = 0; j < width; j++)
     {
       Ray ray;
-      camera.sampleRay(Vec2f(float(j) / width, float(i) / height), ray);
+      float pdf;
+      camera.sampleRay(Vec2f(float(j) / width, float(i) / height), ray, pdf);
       IntersectInfo info;
       if (scene.intersect(ray, info))
         image.setPixel((height - i - 1), (width - j - 1), 0.5f * (info.surfaceInfo.shadingNormal + 1.0f));

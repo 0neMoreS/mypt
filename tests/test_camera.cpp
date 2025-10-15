@@ -18,7 +18,8 @@ int main()
     for (unsigned short j = 0; j < width; j++)
     {
       Ray ray;
-      camera.sampleRay(Vec2f(float(j) / width, float(i) / height), ray);
+      float pdf;
+      camera.sampleRay(Vec2f(float(j) / width, float(i) / height), ray, pdf);
 
       image.setPixel(i, j, 0.5f * (ray.direction + 1.0f));
     }
