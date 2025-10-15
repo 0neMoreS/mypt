@@ -9,7 +9,7 @@ typedef struct
     uint64_t inc;
 } pcg32_random_t;
 
-inline uint32_t pcg32_random_r(pcg32_random_t *rng)
+inline uint32_t pcg32_random_r(pcg32_random_t* rng)
 {
     uint64_t oldstate = rng->state;
     // Advance internal state
@@ -85,10 +85,9 @@ public:
 
 // sample direction in the hemisphere
 // its pdf is propotional to cosine
-inline Vec3f sampleCosineHemisphere(const Vec2f &uv, float &pdf)
+inline Vec3f sampleCosineHemisphere(const Vec2f& uv, float& pdf)
 {
-    const float theta =
-        0.5f * std::acos(std::clamp(1.0f - 2.0f * uv[0], -1.0f, 1.0f));
+    const float theta = 0.5f * std::acos(std::clamp(1.0f - 2.0f * uv[0], -1.0f, 1.0f));
     const float phi = PI_MUL_2 * uv[1];
     const float cosTheta = std::cos(theta);
     pdf = PI_INV * cosTheta;

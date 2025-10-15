@@ -114,7 +114,6 @@ public:
   }
 
   // load obj file
-  // TODO: remove vertex duplication
   void loadModel(const std::filesystem::path &filepath)
   {
     clear();
@@ -260,7 +259,6 @@ public:
     for (size_t faceID = 0; faceID < nFaces(); ++faceID)
     {
       // add bxdf
-      // TODO: remove duplicate
       const auto material = this->materials[faceID];
       if (material)
       {
