@@ -6,12 +6,6 @@ class PathTracingNEE : public Integrator
 private:
     const int maxDepth;
 
-    inline float misWeight(float pdfA, float pdfB) const {
-        float a = pdfA * pdfA;
-        float b = pdfB * pdfB;
-        return (a) / (a + b + 1e-12f);
-    }
-
 public:
     PathTracingNEE(int maxDepth = 100) : maxDepth(maxDepth) {}
 
@@ -37,12 +31,16 @@ public:
                     throughput /= russian_roulette_prob;
                 }
 
+                // ============ Direct Lighting ============
+
                 // NEE
                 float scene_lights_pdf;
                 std::shared_ptr<Light> light = scene.sampleLight(sampler, scene_lights_pdf);
+
                 float light_pdf;
                 SurfaceInfo light_surf = light->samplePoint(sampler, light_pdf);
                 const Vec3f to_light = normalize(light_surf.position - info.surfaceInfo.position);
+
                 IntersectInfo nee_info;
                 if (scene.intersect(Ray{ info.surfaceInfo.position, to_light }, nee_info) && nee_info.hitPrimitive->hasAreaLight()) {
                     const float cos_theta_light = std::max(0.0f, dot(-to_light, light_surf.shadingNormal));
@@ -53,16 +51,18 @@ public:
                     const Vec3f f = info.hitPrimitive->evaluateBxDF(-ray.direction, to_light, info.surfaceInfo, TransportDirection::FROM_CAMERA);
                     if (f[0] > 0 || f[1] > 0 || f[2] > 0) {
                         const Vec3f Le = light->Le(light_surf, -to_light);
-                        const float pdf_bsdf = info.hitPrimitive->getBxDFType() == BxDFType::SPECULAR ? 0.0f : info.hitPrimitive->sampleAllBxDF(-ray.direction, info.surfaceInfo, TransportDirection::FROM_CAMERA).size() > 0 ? 1.0f / info.hitPrimitive->sampleAllBxDF(-ray.direction, info.surfaceInfo, TransportDirection::FROM_CAMERA).size() : 0.0f;
-                        const float weight = misWeight(light_pdf, pdf_bsdf);
-                        radiance += throughput * f * Le * cos_theta_light * cos_theta_surface / (dist2 * scene_lights_pdf * light_pdf) * 0.8f;
+                        radiance += throughput * f * Le * cos_theta_light * cos_theta_surface / (dist2 * scene_lights_pdf * light_pdf);
                     }
                 }
 
-                // Le
+                // ============ Direct Lighting ============
+
+                // ============ Indirect Lighting ============
+
+                // Hit Light
                 if (info.hitPrimitive->hasAreaLight())
                 {
-                    radiance += throughput * info.hitPrimitive->Le(info.surfaceInfo, -ray.direction) * 0.2f;
+                    radiance += throughput * info.hitPrimitive->Le(info.surfaceInfo, -ray.direction);
                     break;
                 }
 
@@ -74,6 +74,8 @@ public:
                 // update throughput and ray
                 throughput *= f * cosTerm(-ray.direction, dir, info.surfaceInfo, TransportDirection::FROM_CAMERA) / pdf_dir;
                 ray = Ray(info.surfaceInfo.position, dir);
+
+                // ============ Indirect Lighting ============
             }
             else
             {
@@ -81,6 +83,6 @@ public:
             }
         }
 
-        return radiance;
+        return radiance * 0.5f;
     }
 };
