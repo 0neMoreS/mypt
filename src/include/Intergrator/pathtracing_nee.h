@@ -38,8 +38,9 @@ public:
                 }
 
                 // NEE
+                float scene_lights_pdf;
+                std::shared_ptr<Light> light = scene.sampleLight(sampler, scene_lights_pdf);
                 float light_pdf;
-                std::shared_ptr<Light> light = scene.sampleLight(sampler, light_pdf);
                 SurfaceInfo light_surf = light->samplePoint(sampler, light_pdf);
                 const Vec3f to_light = normalize(light_surf.position - info.surfaceInfo.position);
                 IntersectInfo nee_info;
@@ -54,7 +55,7 @@ public:
                         const Vec3f Le = light->Le(light_surf, -to_light);
                         const float pdf_bsdf = info.hitPrimitive->getBxDFType() == BxDFType::SPECULAR ? 0.0f : info.hitPrimitive->sampleAllBxDF(-ray.direction, info.surfaceInfo, TransportDirection::FROM_CAMERA).size() > 0 ? 1.0f / info.hitPrimitive->sampleAllBxDF(-ray.direction, info.surfaceInfo, TransportDirection::FROM_CAMERA).size() : 0.0f;
                         const float weight = misWeight(light_pdf, pdf_bsdf);
-                        radiance += throughput * f * Le * cos_theta_light * cos_theta_surface / (dist2 * light_pdf) * 0.8f;
+                        radiance += throughput * f * Le * cos_theta_light * cos_theta_surface / (dist2 * scene_lights_pdf * light_pdf) * 0.8f;
                     }
                 }
 
