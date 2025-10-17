@@ -39,11 +39,11 @@ struct Vec2
     }
 
     T operator[](int i) const { return v[i]; }
-    T &operator[](int i) { return v[i]; }
+    T& operator[](int i) { return v[i]; }
 
     Vec2 operator-() const { return Vec2(-v[0], -v[1]); }
 
-    Vec2 &operator+=(const Vec2 &v)
+    Vec2& operator+=(const Vec2& v)
     {
         for (int i = 0; i < 2; ++i)
         {
@@ -51,7 +51,7 @@ struct Vec2
         }
         return *this;
     }
-    Vec2 &operator*=(const Vec2 &v)
+    Vec2& operator*=(const Vec2& v)
     {
         for (int i = 0; i < 2; ++i)
         {
@@ -59,7 +59,7 @@ struct Vec2
         }
         return *this;
     }
-    Vec2 &operator/=(const Vec2 &v)
+    Vec2& operator/=(const Vec2& v)
     {
         for (int i = 0; i < 2; ++i)
         {
@@ -70,65 +70,65 @@ struct Vec2
 };
 
 template <typename T>
-inline Vec2<T> operator+(const Vec2<T> &v1, const Vec2<T> &v2)
+inline Vec2<T> operator+(const Vec2<T>& v1, const Vec2<T>& v2)
 {
     return Vec2<T>(v1[0] + v2[0], v1[1] + v2[1]);
 }
 template <typename T>
-inline Vec2<T> operator+(const Vec2<T> &v1, float k)
+inline Vec2<T> operator+(const Vec2<T>& v1, float k)
 {
     return Vec2<T>(v1[0] + k, v1[1] + k);
 }
 template <typename T>
-inline Vec2<T> operator+(float k, const Vec2<T> &v2)
+inline Vec2<T> operator+(float k, const Vec2<T>& v2)
 {
     return v2 + k;
 }
 
 template <typename T>
-inline Vec2<T> operator-(const Vec2<T> &v1, const Vec2<T> &v2)
+inline Vec2<T> operator-(const Vec2<T>& v1, const Vec2<T>& v2)
 {
     return Vec2<T>(v1[0] - v2[0], v1[1] - v2[1]);
 }
 template <typename T>
-inline Vec2<T> operator-(const Vec2<T> &v1, float k)
+inline Vec2<T> operator-(const Vec2<T>& v1, float k)
 {
     return Vec2<T>(v1[0] - k, v1[1] - k);
 }
 template <typename T>
-inline Vec2<T> operator-(float k, const Vec2<T> &v2)
+inline Vec2<T> operator-(float k, const Vec2<T>& v2)
 {
     return Vec2<T>(k - v2[0], k - v2[1]);
 }
 
 template <typename T>
-inline Vec2<T> operator*(const Vec2<T> &v1, const Vec2<T> &v2)
+inline Vec2<T> operator*(const Vec2<T>& v1, const Vec2<T>& v2)
 {
     return Vec2<T>(v1[0] * v2[0], v1[1] * v2[1]);
 }
 template <typename T>
-inline Vec2<T> operator*(const Vec2<T> &v1, float k)
+inline Vec2<T> operator*(const Vec2<T>& v1, float k)
 {
     return Vec2<T>(v1[0] * k, v1[1] * k);
 }
 template <typename T>
-inline Vec2<T> operator*(float k, const Vec2<T> &v2)
+inline Vec2<T> operator*(float k, const Vec2<T>& v2)
 {
     return v2 * k;
 }
 
 template <typename T>
-inline Vec2<T> operator/(const Vec2<T> &v1, const Vec2<T> &v2)
+inline Vec2<T> operator/(const Vec2<T>& v1, const Vec2<T>& v2)
 {
     return Vec2<T>(v1[0] / v2[0], v1[1] / v2[1]);
 }
 template <typename T>
-inline Vec2<T> operator/(const Vec2<T> &v1, float k)
+inline Vec2<T> operator/(const Vec2<T>& v1, float k)
 {
     return Vec2<T>(v1[0] / k, v1[1] / k);
 }
 template <typename T>
-inline Vec2<T> operator/(float k, const Vec2<T> &v2)
+inline Vec2<T> operator/(float k, const Vec2<T>& v2)
 {
     return Vec2<T>(k / v2[0], k / v2[1]);
 }
@@ -153,11 +153,11 @@ struct Vec3
     }
 
     T operator[](int i) const { return v[i]; }
-    T &operator[](int i) { return v[i]; }
+    T& operator[](int i) { return v[i]; }
 
     Vec3 operator-() const { return Vec3(-v[0], -v[1], -v[2]); }
 
-    Vec3 &operator+=(const Vec3 &v)
+    Vec3& operator+=(const Vec3& v)
     {
         for (int i = 0; i < 3; ++i)
         {
@@ -165,7 +165,7 @@ struct Vec3
         }
         return *this;
     }
-    Vec3 &operator*=(const Vec3 &v)
+    Vec3& operator*=(const Vec3& v)
     {
         for (int i = 0; i < 3; ++i)
         {
@@ -173,7 +173,7 @@ struct Vec3
         }
         return *this;
     }
-    Vec3 &operator/=(const Vec3 &v)
+    Vec3& operator/=(const Vec3& v)
     {
         for (int i = 0; i < 3; ++i)
         {
@@ -184,90 +184,90 @@ struct Vec3
 };
 
 template <typename T>
-inline Vec3<T> operator+(const Vec3<T> &v1, const Vec3<T> &v2)
+inline Vec3<T> operator+(const Vec3<T>& v1, const Vec3<T>& v2)
 {
     return Vec3<T>(v1[0] + v2[0], v1[1] + v2[1], v1[2] + v2[2]);
 }
 template <typename T>
-inline Vec3<T> operator+(const Vec3<T> &v1, float k)
+inline Vec3<T> operator+(const Vec3<T>& v1, float k)
 {
     return Vec3<T>(v1[0] + k, v1[1] + k, v1[2] + k);
 }
 template <typename T>
-inline Vec3<T> operator+(float k, const Vec3<T> &v2)
+inline Vec3<T> operator+(float k, const Vec3<T>& v2)
 {
     return v2 + k;
 }
 
 template <typename T>
-inline Vec3<T> operator-(const Vec3<T> &v1, const Vec3<T> &v2)
+inline Vec3<T> operator-(const Vec3<T>& v1, const Vec3<T>& v2)
 {
     return Vec3<T>(v1[0] - v2[0], v1[1] - v2[1], v1[2] - v2[2]);
 }
 template <typename T>
-inline Vec3<T> operator-(const Vec3<T> &v1, float k)
+inline Vec3<T> operator-(const Vec3<T>& v1, float k)
 {
     return Vec3<T>(v1[0] - k, v1[1] - k, v1[2] - k);
 }
 template <typename T>
-inline Vec3<T> operator-(float k, const Vec3<T> &v2)
+inline Vec3<T> operator-(float k, const Vec3<T>& v2)
 {
     return Vec3<T>(k - v2[0], k - v2[1], k - v2[2]);
 }
 
 template <typename T>
-inline Vec3<T> operator*(const Vec3<T> &v1, const Vec3<T> &v2)
+inline Vec3<T> operator*(const Vec3<T>& v1, const Vec3<T>& v2)
 {
     return Vec3<T>(v1[0] * v2[0], v1[1] * v2[1], v1[2] * v2[2]);
 }
 template <typename T>
-inline Vec3<T> operator*(const Vec3<T> &v1, float k)
+inline Vec3<T> operator*(const Vec3<T>& v1, float k)
 {
     return Vec3<T>(v1[0] * k, v1[1] * k, v1[2] * k);
 }
 template <typename T>
-inline Vec3<T> operator*(float k, const Vec3<T> &v2)
+inline Vec3<T> operator*(float k, const Vec3<T>& v2)
 {
     return v2 * k;
 }
 
 template <typename T>
-inline Vec3<T> operator/(const Vec3<T> &v1, const Vec3<T> &v2)
+inline Vec3<T> operator/(const Vec3<T>& v1, const Vec3<T>& v2)
 {
     return Vec3<T>(v1[0] / v2[0], v1[1] / v2[1], v1[2] / v2[2]);
 }
 template <typename T>
-inline Vec3<T> operator/(const Vec3<T> &v1, float k)
+inline Vec3<T> operator/(const Vec3<T>& v1, float k)
 {
     return Vec3<T>(v1[0] / k, v1[1] / k, v1[2] / k);
 }
 template <typename T>
-inline Vec3<T> operator/(float k, const Vec3<T> &v2)
+inline Vec3<T> operator/(float k, const Vec3<T>& v2)
 {
     return Vec3<T>(k / v2[0], k / v2[1], k / v2[2]);
 }
 
 template <typename T>
-inline T dot(const Vec3<T> &v1, const Vec3<T> &v2)
+inline T dot(const Vec3<T>& v1, const Vec3<T>& v2)
 {
     return v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2];
 }
 
 template <typename T>
-inline Vec3<T> cross(const Vec3<T> &v1, const Vec3<T> &v2)
+inline Vec3<T> cross(const Vec3<T>& v1, const Vec3<T>& v2)
 {
     return Vec3<T>(v1[1] * v2[2] - v1[2] * v2[1], v1[2] * v2[0] - v1[0] * v2[2],
-                   v1[0] * v2[1] - v1[1] * v2[0]);
+        v1[0] * v2[1] - v1[1] * v2[0]);
 }
 
 using Vec3f = Vec3<float>;
 using Vec3ui = Vec3<uint32_t>;
 
-inline float length(const Vec3f &v) { return std::sqrt(dot(v, v)); }
-inline float length2(const Vec3f &v) { return dot(v, v); }
-inline Vec3f normalize(const Vec3f &v) { return v / length(v); }
+inline float length(const Vec3f& v) { return std::sqrt(dot(v, v)); }
+inline float length2(const Vec3f& v) { return dot(v, v); }
+inline Vec3f normalize(const Vec3f& v) { return v / length(v); }
 
-inline void orthonormalBasis(const Vec3f &n, Vec3f &t, Vec3f &b)
+inline void orthonormalBasis(const Vec3f& n, Vec3f& t, Vec3f& b)
 {
     if (std::abs(n[1]) < 0.9f)
     {
@@ -281,15 +281,15 @@ inline void orthonormalBasis(const Vec3f &n, Vec3f &t, Vec3f &b)
 }
 
 // transform direction from world to local
-inline Vec3f worldToLocal(const Vec3f &v, const Vec3f &lx, const Vec3f &ly,
-                          const Vec3f &lz)
+inline Vec3f worldToLocal(const Vec3f& v, const Vec3f& lx, const Vec3f& ly,
+    const Vec3f& lz)
 {
     return Vec3f(dot(v, lx), dot(v, ly), dot(v, lz));
 }
 
 // transform direction from local to world
-inline Vec3f localToWorld(const Vec3f &v, const Vec3f &lx, const Vec3f &ly,
-                          const Vec3f &lz)
+inline Vec3f localToWorld(const Vec3f& v, const Vec3f& lx, const Vec3f& ly,
+    const Vec3f& lz)
 {
     Vec3f ret;
     for (int i = 0; i < 3; ++i)
@@ -303,7 +303,7 @@ inline Vec3f localToWorld(const Vec3f &v, const Vec3f &lx, const Vec3f &ly,
 inline Vec3f sphericalToCartesian(float theta, float phi)
 {
     return Vec3f(std::cos(phi) * std::sin(theta), std::cos(theta),
-                 std::sin(phi) * std::sin(theta));
+        std::sin(phi) * std::sin(theta));
 }
 
 struct Ray
@@ -314,10 +314,12 @@ struct Ray
     mutable float tmax = std::numeric_limits<float>::max();
 
     Ray() {}
-    Ray(const Vec3f &origin, const Vec3f &direction)
-        : origin(origin), direction(normalize(direction)) {}
+    Ray(const Vec3f& origin, const Vec3f& direction)
+        : origin(origin), direction(normalize(direction)) {
+    }
 
     Vec3f operator()(float t) const { return origin + t * direction; }
+    Ray operator-() const { return Ray(origin, -direction); }
 };
 
 struct SurfaceInfo
@@ -338,5 +340,5 @@ struct IntersectInfo
 {
     float t; // distance to the hit point
     SurfaceInfo surfaceInfo;
-    const Primitive *hitPrimitive;
+    const Primitive* hitPrimitive;
 };

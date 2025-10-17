@@ -11,24 +11,29 @@
 class Primitive
 {
 private:
-  const Triangle *triangle;
+  const Triangle* triangle;
   const std::shared_ptr<BxDF> bxdf;
   const std::shared_ptr<Light> areaLight;
 
 public:
-  Primitive(const Triangle *triangle, const std::shared_ptr<BxDF> &bxdf, const std::shared_ptr<Light> &areaLight = nullptr) : triangle(triangle), bxdf(bxdf), areaLight(areaLight) {}
+  Primitive(const Triangle* triangle, const std::shared_ptr<BxDF>& bxdf, const std::shared_ptr<Light>& areaLight = nullptr) : triangle(triangle), bxdf(bxdf), areaLight(areaLight) {}
 
   bool hasAreaLight() const { return areaLight != nullptr; }
 
+  bool hasAreaLight(const std::shared_ptr<Light>& light) const
+  {
+    return areaLight != nullptr && areaLight == light;
+  }
+
   // return emission
-  Vec3f Le(const SurfaceInfo &surfInfo, const Vec3f &dir) const
+  Vec3f Le(const SurfaceInfo& surfInfo, const Vec3f& dir) const
   {
     return areaLight->Le(surfInfo, dir);
   }
 
   BxDFType getBxDFType() const { return bxdf->getType(); }
 
-  Vec3f evaluateBxDF(const Vec3f &wo, const Vec3f &wi, const SurfaceInfo &surfInfo, const TransportDirection &mode) const
+  Vec3f evaluateBxDF(const Vec3f& wo, const Vec3f& wi, const SurfaceInfo& surfInfo, const TransportDirection& mode) const
   {
     // world to local transform
     const Vec3f wo_l = worldToLocal(wo, surfInfo.dpdu, surfInfo.shadingNormal, surfInfo.dpdv);
@@ -39,7 +44,7 @@ public:
 
   // sample direction by BxDF
   // its pdf is propotional to the shape od BxDF
-  Vec3f sampleBxDF(const Vec3f &wo, const SurfaceInfo &surfInfo, const TransportDirection &mode, Sampler &sampler, Vec3f &wi, float &pdf) const
+  Vec3f sampleBxDF(const Vec3f& wo, const SurfaceInfo& surfInfo, const TransportDirection& mode, Sampler& sampler, Vec3f& wi, float& pdf) const
   {
     // world to local transform
     const Vec3f wo_l = worldToLocal(wo, surfInfo.dpdu, surfInfo.shadingNormal, surfInfo.dpdv);
@@ -55,7 +60,7 @@ public:
   }
 
   // get all samplable direction
-  std::vector<DirectionPair> sampleAllBxDF(const Vec3f &wo, const SurfaceInfo &surfInfo, const TransportDirection &mode) const
+  std::vector<DirectionPair> sampleAllBxDF(const Vec3f& wo, const SurfaceInfo& surfInfo, const TransportDirection& mode) const
   {
     // world to local transform
     const Vec3f wo_l = worldToLocal(wo, surfInfo.dpdu, surfInfo.shadingNormal, surfInfo.dpdv);
@@ -64,11 +69,20 @@ public:
     std::vector<DirectionPair> dir_pairs = bxdf->sampleAllDirection(wo_l, mode);
 
     // local to world transform
-    for (auto &dp : dir_pairs)
+    for (auto& dp : dir_pairs)
     {
       dp.first = localToWorld(dp.first, surfInfo.dpdu, surfInfo.shadingNormal, surfInfo.dpdv);
     }
 
     return dir_pairs;
+  }
+
+  SurfaceInfo sampleLightPoint(Sampler& sampler, float& pdf) const
+  {
+    if (areaLight != nullptr)
+    {
+      return areaLight->samplePoint(sampler, pdf);
+    }
+    return SurfaceInfo();
   }
 };

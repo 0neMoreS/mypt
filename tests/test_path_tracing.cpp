@@ -10,7 +10,7 @@ int main()
 {
   const int width = 512;
   const int height = 512;
-  const int n_samples = 1024;
+  const int n_samples = 4096;
   const int max_depth = 8;
 
   Image image(width, height);
