@@ -15,16 +15,21 @@ public:
     {
         Vec3f radiance(0);
         Ray wo = ray_in;
-        Vec3f throughput(1, 1, 1);
+        Vec3f throughput(1, 1, 1); // the throughput of previous shading point
+        IntersectInfo info; // current shading point
+        IntersectInfo info_next; // next shading point
+        bool hit_next = scene.intersect(wo, info_next);
         for (int k = 0; k < maxDepth; ++k)
         {
-            IntersectInfo info;
-            if (scene.intersect(wo, info))
+            if (hit_next)
             {
+                // update info for current shading point
                 wo = -wo;
+                info = info_next;
+                hit_next = false;
 
+                // directly visible light source
                 if (k == 0 && info.hitPrimitive->hasAreaLight()) {
-                    // directly visible light source
                     radiance += throughput * info.hitPrimitive->Le(info.surfaceInfo, wo.direction);
                     // pdf here is camera's pdf, which is divided in the main loop
                 }
@@ -39,81 +44,72 @@ public:
                     throughput /= russian_roulette_prob;
                 }
 
-                // NEE from this shading point
-                float scene_lights_pdf;
-                std::shared_ptr<Light> light = scene.sampleLight(sampler, scene_lights_pdf);
-                radiance += (throughput * NEE_MIS(wo, info, light, scene, sampler) / scene_lights_pdf);
-
-
-                // sample direction by BxDF, change the NEE shading point
+                // Get pdfs
                 Vec3f dir;
                 float pdf_dir;
-                Vec3f f = info.hitPrimitive->sampleBxDF(wo.direction, info.surfaceInfo, TransportDirection::FROM_CAMERA, sampler, dir, pdf_dir);
+                Vec3f f_brdf = info.hitPrimitive->sampleBxDF(wo.direction, info.surfaceInfo, TransportDirection::FROM_CAMERA, sampler, dir, pdf_dir);
+                // NEE from this shading point
+                // sample light from the scene
+                float scene_lights_pdf;
+                std::shared_ptr<Light> light = scene.sampleLight(sampler, scene_lights_pdf);
 
-                // update throughput and ray
-                throughput *= f * cosTerm(wo.direction, dir, info.surfaceInfo, TransportDirection::FROM_CAMERA) / pdf_dir;
+                if (info.hitPrimitive->getBxDFType() == BxDFType::DIFFUSE) {
+                    float light_pdf;
+                    SurfaceInfo light_surf = light->samplePoint(sampler, light_pdf);
+                    const Vec3f to_light = normalize(light_surf.position - info.surfaceInfo.position);
+
+                    // ============ Sample Light ===========
+
+                    if (scene.intersect(Ray{ info.surfaceInfo.position, to_light }, info_next) && info_next.hitPrimitive->hasAreaLight(light)) {
+                        const float cos_theta_light = std::abs(dot(-to_light, info_next.surfaceInfo.shadingNormal));
+                        const float dist2 = std::pow(length(info_next.surfaceInfo.position - info.surfaceInfo.position), 2.f);
+                        const float w_light_pdf = light_pdf * dist2 / cos_theta_light;
+                        const float weight_light = w_light_pdf / (w_light_pdf + pdf_dir); // balance heuristic
+
+                        const Vec3f f_light = info.hitPrimitive->evaluateBxDF(wo.direction, to_light, info.surfaceInfo, TransportDirection::FROM_CAMERA);
+
+                        radiance += throughput * weight_light * (f_light * cosTerm(wo.direction, to_light, info.surfaceInfo, TransportDirection::FROM_CAMERA)) * info_next.hitPrimitive->Le(info_next.surfaceInfo, -to_light) / (w_light_pdf * scene_lights_pdf);
+                    }
+
+                    // ============ Sample Light ============
+
+                    // ============ Sample BRDF ============
+
+                    // if hit, info_next will update to cover the previous info_next, if not hit, hit_next remains false and loop will break
+                    if (scene.intersect(Ray{ info.surfaceInfo.position, dir }, info_next))
+                    {
+                        hit_next = true;
+                        if (info_next.hitPrimitive->hasAreaLight(light)) {
+
+                            const float cos_theta_light = std::abs(dot(-dir, info_next.surfaceInfo.shadingNormal));
+                            const float dist2 = std::pow(length(info.surfaceInfo.position - info_next.surfaceInfo.position), 2.f);
+                            const float w_light_pdf = light_pdf * dist2 / cos_theta_light;
+                            const float weight_light = pdf_dir / (w_light_pdf + pdf_dir); // balance heuristic
+
+                            radiance += throughput * weight_light * (f_brdf * cosTerm(wo.direction, dir, info.surfaceInfo, TransportDirection::FROM_CAMERA)) * info_next.hitPrimitive->Le(info_next.surfaceInfo, -dir) / (pdf_dir * scene_lights_pdf);
+                        }
+                    }
+
+                    // ============ Sample BRDF ============
+                } else if (info.hitPrimitive->getBxDFType() == BxDFType::SPECULAR) {
+                    if (scene.intersect(Ray{ info.surfaceInfo.position, dir }, info_next))
+                    {
+                        hit_next = true;
+                        if (info_next.hitPrimitive->hasAreaLight(light)) {
+                            radiance += throughput * (f_brdf * cosTerm(wo.direction, dir, info.surfaceInfo, TransportDirection::FROM_CAMERA)) * light->Le(info_next.surfaceInfo, -dir) / (pdf_dir * scene_lights_pdf);
+                        }
+                    }
+                }
+
+                // update ray and throughput
+                throughput *= f_brdf * cosTerm(wo.direction, dir, info.surfaceInfo, TransportDirection::FROM_CAMERA) / pdf_dir;
                 wo = Ray(info.surfaceInfo.position, dir);
-            }
-            else
+            } else
             {
                 break;
             }
         }
 
-        return radiance;
-    }
-
-    Vec3f NEE_MIS(const Ray& wo, const IntersectInfo& info, const std::shared_ptr<Light>& light, const Scene& scene, Sampler& sampler) const
-    {
-        Vec3f radiance(0);
-
-        // Get pdfs
-        Vec3f dir;
-        float dir_pdf;
-        Vec3f f_brdf = info.hitPrimitive->sampleBxDF(wo.direction, info.surfaceInfo, TransportDirection::FROM_CAMERA, sampler, dir, dir_pdf);
-
-        if (info.hitPrimitive->getBxDFType() == BxDFType::DIFFUSE) {
-            float light_pdf;
-            SurfaceInfo light_surf = light->samplePoint(sampler, light_pdf);
-            const Vec3f to_light = normalize(light_surf.position - info.surfaceInfo.position);
-            IntersectInfo light_info;
-
-            // ============ Sample Light ===========
-
-            if (scene.intersect(Ray{ info.surfaceInfo.position, to_light }, light_info) && light_info.hitPrimitive->hasAreaLight(light)) {
-                const float cos_theta_light = std::abs(dot(-to_light, light_info.surfaceInfo.shadingNormal));
-                const float dist2 = std::pow(length(light_info.surfaceInfo.position - info.surfaceInfo.position), 2.f);
-                const float w_light_pdf = light_pdf * dist2 / cos_theta_light;
-                const float weight_light = w_light_pdf / (w_light_pdf + dir_pdf); // balance heuristic
-
-                const Vec3f f_light = info.hitPrimitive->evaluateBxDF(wo.direction, to_light, info.surfaceInfo, TransportDirection::FROM_CAMERA);
-
-                radiance += weight_light * (f_light * cosTerm(wo.direction, to_light, info.surfaceInfo, TransportDirection::FROM_CAMERA)) * light_info.hitPrimitive->Le(light_info.surfaceInfo, -to_light) / w_light_pdf;
-            }
-
-            // ============ Sample Light ============
-
-            // ============ Sample BRDF ============
-
-            if (scene.intersect(Ray{ info.surfaceInfo.position, dir }, light_info) && light_info.hitPrimitive->hasAreaLight(light))
-            {
-                const float cos_theta_light = std::abs(dot(-dir, light_info.surfaceInfo.shadingNormal));
-                const float dist2 = std::pow(length(info.surfaceInfo.position - light_info.surfaceInfo.position), 2.f);
-                const float w_light_pdf = light_pdf * dist2 / cos_theta_light;
-                const float weight_light = dir_pdf / (w_light_pdf + dir_pdf); // balance heuristic
-
-                radiance += weight_light * (f_brdf * cosTerm(wo.direction, dir, info.surfaceInfo, TransportDirection::FROM_CAMERA)) * light_info.hitPrimitive->Le(light_info.surfaceInfo, -dir) / dir_pdf;
-            }
-
-            // ============ Sample BRDF ============
-        }
-        else {
-            IntersectInfo light_info;
-            if (scene.intersect(Ray{ info.surfaceInfo.position, dir }, light_info) && light_info.hitPrimitive->hasAreaLight(light))
-            {
-                radiance += (f_brdf * cosTerm(wo.direction, dir, info.surfaceInfo, TransportDirection::FROM_CAMERA)) * light->Le(light_info.surfaceInfo, -dir) / dir_pdf;
-            }
-        }
         return radiance;
     }
 };

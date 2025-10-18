@@ -29,16 +29,16 @@ public:
         std::cout << std::fixed << std::setprecision(3);
 
         std::cout << "[Camera] position: ("
-                  << position[0] << ", " << position[1] << ", " << position[2] << ")\n";
+            << position[0] << ", " << position[1] << ", " << position[2] << ")\n";
 
         std::cout << "[Camera] forward: ("
-                  << forward[0] << ", " << forward[1] << ", " << forward[2] << ")\n";
+            << forward[0] << ", " << forward[1] << ", " << forward[2] << ")\n";
 
         std::cout << "[Camera] right: ("
-                  << right[0] << ", " << right[1] << ", " << right[2] << ")\n";
+            << right[0] << ", " << right[1] << ", " << right[2] << ")\n";
 
         std::cout << "[Camera] up: ("
-                  << up[0] << ", " << up[1] << ", " << up[2] << ")\n";
+            << up[0] << ", " << up[1] << ", " << up[2] << ")\n";
 
         std::cout << "[Camera] vfov: " << vfov << " degrees\n";
 
@@ -47,10 +47,10 @@ public:
         std::cout << "[Camera] half_width: " << half_width << "\n";
 
         std::cout << "[Camera] lower_left_corner: ("
-                  << lower_left_corner[0] << ", " << lower_left_corner[1] << ", " << lower_left_corner[2] << ")\n";
+            << lower_left_corner[0] << ", " << lower_left_corner[1] << ", " << lower_left_corner[2] << ")\n";
     }
 
-    void sampleRay(const Vec2f &uv, Ray &ray, float &pdf) const
+    void sampleRay(const Vec2f& uv, Ray& ray, float& pdf) const
     {
         ray = Ray(position, normalize(lower_left_corner + uv[0] * horizontal + uv[1] * vertical - position));
         pdf = 1.0f;
@@ -71,7 +71,7 @@ private:
     float focal_length;
 
 public:
-    Camera(const Vec3f &position, const Vec3f &forward, float FOV = 0.5f * PI)
+    Camera(const Vec3f& position, const Vec3f& forward, float FOV = 0.5f * PI)
         : position(position), forward(forward)
     {
         right = normalize(cross(forward, Vec3f(0, 1, 0)));
@@ -82,19 +82,19 @@ public:
 
         std::cout << std::fixed << std::setprecision(3);
         std::cout << "[Camera] position: ("
-                  << position[0] << ", " << position[1] << ", " << position[2] << ")\n";
+            << position[0] << ", " << position[1] << ", " << position[2] << ")\n";
         std::cout << "[Camera] forward: ("
-                  << forward[0] << ", " << forward[1] << ", " << forward[2] << ")\n";
+            << forward[0] << ", " << forward[1] << ", " << forward[2] << ")\n";
         std::cout << "[Camera] right: ("
-                  << right[0] << ", " << right[1] << ", " << right[2] << ")\n";
+            << right[0] << ", " << right[1] << ", " << right[2] << ")\n";
         std::cout << "[Camera] up: ("
-                  << up[0] << ", " << up[1] << ", " << up[2] << ")\n";
+            << up[0] << ", " << up[1] << ", " << up[2] << ")\n";
         std::cout << "[Camera] FOV: " << FOV * 180.0f / PI << " degrees\n";
     }
 
     // sample ray emitting from the given sensor coordinate
     // NOTE: uv: [-1, -1] x [1, 1], sensor coordinate
-    bool sampleRay(const Vec2f &uv, Ray &ray, float &pdf) const
+    bool sampleRay(const Vec2f& uv, Ray& ray, float& pdf) const
     {
         const Vec3f pinholePos = position + focal_length * forward;
         const Vec3f sensorPos = position + uv[0] * right + uv[1] * up;

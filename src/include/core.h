@@ -272,8 +272,7 @@ inline void orthonormalBasis(const Vec3f& n, Vec3f& t, Vec3f& b)
     if (std::abs(n[1]) < 0.9f)
     {
         t = normalize(cross(n, Vec3f(0, 1, 0)));
-    }
-    else
+    } else
     {
         t = normalize(cross(n, Vec3f(0, 0, -1)));
     }
@@ -341,4 +340,12 @@ struct IntersectInfo
     float t; // distance to the hit point
     SurfaceInfo surfaceInfo;
     const Primitive* hitPrimitive;
+
+    IntersectInfo& operator=(const IntersectInfo& other)
+    {
+        t = other.t;
+        surfaceInfo = other.surfaceInfo;
+        hitPrimitive = other.hitPrimitive;
+        return *this;
+    }
 };

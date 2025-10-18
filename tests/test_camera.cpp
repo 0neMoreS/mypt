@@ -56,8 +56,7 @@ int main()
       if (camera.sampleRay(Vec2f(u, v), ray, pdf))
       {
         image.setPixel(i, j, 0.5f * (ray.direction + 1.0f));
-      }
-      else
+      } else
       {
         image.setPixel(i, j, Vec3f(0));
       }
