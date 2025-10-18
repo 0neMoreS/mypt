@@ -15,7 +15,7 @@ public:
     {
         Vec3f radiance(0);
         Ray wo = ray_in;
-        Vec3f throughput(1, 1, 1); // the throughput of previous shading point
+        Vec3f throughput(1, 1, 1); // the throughput of previous shading point, because the different cos in Sample Light and Sample BRDF
         IntersectInfo info; // current shading point
         IntersectInfo info_next; // next shading point
         bool hit_next = scene.intersect(wo, info_next);
@@ -48,11 +48,12 @@ public:
                 Vec3f dir;
                 float pdf_dir;
                 Vec3f f_brdf = info.hitPrimitive->sampleBxDF(wo.direction, info.surfaceInfo, TransportDirection::FROM_CAMERA, sampler, dir, pdf_dir);
-                // NEE from this shading point
+
                 // sample light from the scene
                 float scene_lights_pdf;
                 std::shared_ptr<Light> light = scene.sampleLight(sampler, scene_lights_pdf);
 
+                // NEE from this shading point
                 if (info.hitPrimitive->getBxDFType() == BxDFType::DIFFUSE) {
                     float light_pdf;
                     SurfaceInfo light_surf = light->samplePoint(sampler, light_pdf);
