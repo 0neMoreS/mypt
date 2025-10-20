@@ -1,3 +1,5 @@
+
+#include <chrono>
 #include <omp.h>
 
 #include "camera.h"
@@ -8,17 +10,21 @@
 
 int main()
 {
+
   const int width = 512;
   const int height = 512;
-  const int n_samples = 2048;
+  const int n_samples = 300000;
   const int max_depth = 8;
+
+
+  auto start = std::chrono::high_resolution_clock::now();
 
   Image image(width, height);
   Camera camera(Vec3f(0, 1.f, 3), Vec3f(0, 1.f, -1), Vec3f(0, 1.f, 0), 50.f, float(width) / float(height));
 
   Scene scene;
-  scene.loadModel("../models/CornellBox-Water.obj");
-  // scene.loadModel("../models/cornellbox-water2.obj");
+  // scene.loadModel("../models/CornellBox-Water.obj");
+  scene.loadModel("../models/cornellbox-water2.obj");
   scene.build();
 
   // photon tracing and build photon map
@@ -57,4 +63,8 @@ int main()
 
   image.gammaCorrection(2.2f);
   image.writePPM("output_test_path_tracing.ppm");
+
+  auto end = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> elapsed = end - start;
+  printf("\nTotal rendering time: %.2f hours (%.2f seconds)\n", elapsed.count() / 3600.0, elapsed.count());
 }

@@ -8,27 +8,29 @@
 
 int main() {
   auto start = std::chrono::high_resolution_clock::now();
-  const int width = 256;
-  const int height = 256;
-  const int n_samples = 16;
-  const int n_photons = 10000;
-  const int n_estimation_global = 10;
-  const float n_photons_caustics_multiplier = 10;
-  const int n_estimation_caustics = 10;
+  const int width = 512;
+  const int height = 512;
+  const int n_samples = 256;
+  const int n_photons = 100000;
+  const int n_estimation_global = 100;
+  const float n_photons_caustics_multiplier = 100;
+  const int n_estimation_caustics = 100;
   const int final_gathering_depth = 4;
-  const int max_depth = 4;
+  const int max_depth = 100;
 
   Image image(width, height);
   Camera camera(Vec3f(0, 1.f, 3), Vec3f(0, 1.f, -1), Vec3f(0, 1.f, 0), 50.f, float(width) / float(height));
 
   Scene scene;
-  scene.loadModel("../models/cornellbox-water2.obj");
+  scene.loadModel("../models/CornellBox-Water.obj");
   scene.build();
 
   // photon tracing and build photon map
   PhotonMapping integrator(n_photons, n_estimation_global, n_photons_caustics_multiplier, n_estimation_caustics, final_gathering_depth, max_depth);
   UniformSampler sampler;
   integrator.build(scene, sampler);
+
+  std::cout << "[Main] Start rendering..." << std::endl;
 
 #pragma omp parallel for collapse(2) schedule(dynamic, 1)
   for (int i = 0; i < height; ++i)
