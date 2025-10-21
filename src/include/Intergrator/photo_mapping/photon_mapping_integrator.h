@@ -32,15 +32,12 @@ private:
         const IntersectInfo& info) const {
         // get nearby photons
         float max_dist2;
-        const std::vector<int> photon_indices =
-            globalPhotonMap.queryKNearestPhotons(info.surfaceInfo.position,
-                nEstimationGlobal, max_dist2);
+        const std::vector<int> photon_indices = globalPhotonMap.queryKNearestPhotons(info.surfaceInfo.position, nEstimationGlobal, max_dist2);
 
         Vec3f Lo;
         for (const int photon_idx : photon_indices) {
             const Photon& photon = globalPhotonMap.getIthPhoton(photon_idx);
-            const Vec3f f = info.hitPrimitive->evaluateBxDF(
-                wo, photon.wi, info.surfaceInfo, TransportDirection::FROM_CAMERA);
+            const Vec3f f = info.hitPrimitive->evaluateBxDF(wo, photon.wi, info.surfaceInfo, TransportDirection::FROM_CAMERA);
             Lo += f * photon.throughput;
         }
         if (photon_indices.size() > 0) {
