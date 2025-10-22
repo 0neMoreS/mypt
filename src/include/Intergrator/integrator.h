@@ -36,12 +36,10 @@ public:
     if (transport_dir == TransportDirection::FROM_CAMERA)
     {
       return std::abs(wi_ns);
-    }
-    else if (transport_dir == TransportDirection::FROM_LIGHT)
+    } else if (transport_dir == TransportDirection::FROM_LIGHT)
     {
       return std::abs(wo_ns) * std::abs(wi_ng) / std::abs(wo_ng);
-    }
-    else
+    } else
     {
       std::exit(EXIT_FAILURE);
     }
