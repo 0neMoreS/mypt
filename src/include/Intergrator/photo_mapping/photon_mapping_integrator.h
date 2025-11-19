@@ -32,12 +32,13 @@ private:
         const IntersectInfo& info) const {
         // get nearby photons
         float max_dist2;
-        const std::vector<int> photon_indices = globalPhotonMap.queryKNearestPhotons(info.surfaceInfo.position, nEstimationGlobal, max_dist2);
+        const std::vector<int> photon_indices =
+            globalPhotonMap.queryKNearestPhotons(info.surfaceInfo.position, nEstimationGlobal, max_dist2);
 
         Vec3f Lo;
         for (const int photon_idx : photon_indices) {
             const Photon& photon = globalPhotonMap.getIthPhoton(photon_idx);
-            const Vec3f f = info.hitPrimitive->evaluateBxDF(wo, photon.wi, info.surfaceInfo, TransportDirection::FROM_CAMERA);
+            const Vec3f f = info.evaluateBxDF(wo, photon.wi, TransportDirection::FROM_CAMERA);
             Lo += f * photon.throughput;
         }
         if (photon_indices.size() > 0) {
@@ -55,7 +56,7 @@ private:
         Vec3f Lo;
         for (const int photon_idx : photon_indices) {
             const Photon& photon = causticsPhotonMap.getIthPhoton(photon_idx);
-            const Vec3f f = info.hitPrimitive->evaluateBxDF(wo, photon.wi, info.surfaceInfo, TransportDirection::FROM_CAMERA);
+            const Vec3f f = info.evaluateBxDF(wo, photon.wi, TransportDirection::FROM_CAMERA);
             Lo += f * photon.throughput;
         }
         if (photon_indices.size() > 0) {
@@ -132,7 +133,7 @@ public:
 
                 IntersectInfo info;
                 if (scene.intersect(ray, info)) {
-                    const BxDFType bxdf_type = info.hitPrimitive->getBxDFType();
+                    const BxDFType bxdf_type = info.getBxDFType();
                     if (bxdf_type == BxDFType::DIFFUSE) {
                         {
                             thread_photons[omp_get_thread_num()].emplace_back(throughput, info.surfaceInfo.position, -ray.direction);
@@ -151,7 +152,7 @@ public:
                     // sample direction by BxDF
                     Vec3f dir;
                     float pdf_dir;
-                    const Vec3f f = info.hitPrimitive->sampleBxDF(-ray.direction, info.surfaceInfo, TransportDirection::FROM_LIGHT, sampler_per_thread, dir, pdf_dir);
+                    const Vec3f f = info.sampleBxDF(-ray.direction, TransportDirection::FROM_LIGHT, sampler_per_thread, dir, pdf_dir);
 
                     // update throughput and ray
                     throughput *= f * cosTerm(-ray.direction, dir, info.surfaceInfo, TransportDirection::FROM_LIGHT) / pdf_dir;
@@ -202,7 +203,7 @@ public:
 
                     IntersectInfo info;
                     if (scene.intersect(ray, info)) {
-                        const BxDFType bxdf_type = info.hitPrimitive->getBxDFType();
+                        const BxDFType bxdf_type = info.getBxDFType();
 
                         // break when hitting diffuse surface without previous specular
                         if (!prev_specular && bxdf_type == BxDFType::DIFFUSE) {
@@ -234,7 +235,7 @@ public:
                         // sample direction by BxDF
                         Vec3f dir;
                         float pdf_dir;
-                        const Vec3f f = info.hitPrimitive->sampleBxDF(-ray.direction, info.surfaceInfo, TransportDirection::FROM_LIGHT, sampler_per_thread, dir, pdf_dir);
+                        const Vec3f f = info.sampleBxDF(-ray.direction, TransportDirection::FROM_LIGHT, sampler_per_thread, dir, pdf_dir);
 
                         // update throughput and ray
                         throughput *= f * cosTerm(-ray.direction, dir, info.surfaceInfo, TransportDirection::FROM_LIGHT) / pdf_dir;
@@ -270,8 +271,8 @@ public:
                 wo = -wo;
 
                 // directly visible light source
-                if (info.hitPrimitive->hasAreaLight()) {
-                    radiance += throughput * info.hitPrimitive->Le(info.surfaceInfo, wo.direction);
+                if (info.hasAreaLight()) {
+                    radiance += throughput * info.Le(wo.direction);
                 }
 
                 if (k >= maxDepth / 2) {
@@ -285,7 +286,7 @@ public:
                 }
 
                 // NEE for DIFFUSE
-                if (info.hitPrimitive->getBxDFType() == BxDFType::DIFFUSE) {
+                if (info.getBxDFType() == BxDFType::DIFFUSE) {
                     if (k > finalGatheringDepth) {
                         radiance += throughput * computeRadianceWithPhotonMap(wo.direction, info);
                         break;
@@ -296,11 +297,11 @@ public:
                     radiance += throughput * computeCausticsWithPhotonMap(wo.direction, info);
 
                     break;
-                } else if (info.hitPrimitive->getBxDFType() == BxDFType::SPECULAR) {
+                } else if (info.getBxDFType() == BxDFType::SPECULAR) {
                     // Get pdfs
                     Vec3f dir;
                     float pdf_dir;
-                    Vec3f f_brdf = info.hitPrimitive->sampleBxDF(wo.direction, info.surfaceInfo, TransportDirection::FROM_CAMERA, sampler, dir, pdf_dir);
+                    Vec3f f_brdf = info.sampleBxDF(wo.direction, TransportDirection::FROM_CAMERA, sampler, dir, pdf_dir);
 
                     // update ray and throughput
                     throughput *= f_brdf * cosTerm(wo.direction, dir, info.surfaceInfo, TransportDirection::FROM_CAMERA) / pdf_dir;
@@ -333,21 +334,21 @@ private:
         // sample brdf
         Vec3f dir;
         float pdf_dir;
-        const Vec3f f_brdf = info.hitPrimitive->sampleBxDF(wo, info.surfaceInfo, TransportDirection::FROM_CAMERA, sampler, dir, pdf_dir);
+        const Vec3f f_brdf = info.sampleBxDF(wo, TransportDirection::FROM_CAMERA, sampler, dir, pdf_dir);
 
         IntersectInfo info_next;
 
         // ============ Sample Light ===========
 
-        if (scene.intersect(Ray{ info.surfaceInfo.position, to_light }, info_next) && info_next.hitPrimitive->hasAreaLight(light)) {
+        if (scene.intersect(Ray{ info.surfaceInfo.position, to_light }, info_next) && info_next.hasAreaLight(light)) {
             const float cos_theta_light = std::abs(dot(-to_light, info_next.surfaceInfo.shadingNormal));
             const float dist2 = std::pow(length(info_next.surfaceInfo.position - info.surfaceInfo.position), 2.f);
             const float w_light_pdf = light_pdf * dist2 / cos_theta_light;
             const float weight_light = w_light_pdf / (w_light_pdf + pdf_dir); // balance heuristic
 
-            const Vec3f f_light = info.hitPrimitive->evaluateBxDF(wo, to_light, info.surfaceInfo, TransportDirection::FROM_CAMERA);
+            const Vec3f f_light = info.evaluateBxDF(wo, to_light, TransportDirection::FROM_CAMERA);
 
-            radiance += weight_light * (f_light * cosTerm(wo, to_light, info.surfaceInfo, TransportDirection::FROM_CAMERA)) * info_next.hitPrimitive->Le(info_next.surfaceInfo, -to_light) / (w_light_pdf * scene_lights_pdf);
+            radiance += weight_light * (f_light * cosTerm(wo, to_light, info.surfaceInfo, TransportDirection::FROM_CAMERA)) * info_next.Le(-to_light) / (w_light_pdf * scene_lights_pdf);
         }
 
         // ============ Sample Light ============
@@ -355,14 +356,14 @@ private:
         // ============ Sample BRDF ============
 
         // if hit, info_next will update to cover the previous info_next, if not hit, hit_next remains false and loop will break
-        if (scene.intersect(Ray{ info.surfaceInfo.position, dir }, info_next) && info_next.hitPrimitive->hasAreaLight(light))
+        if (scene.intersect(Ray{ info.surfaceInfo.position, dir }, info_next) && info_next.hasAreaLight(light))
         {
             const float cos_theta_light = std::abs(dot(-dir, info_next.surfaceInfo.shadingNormal));
             const float dist2 = std::pow(length(info.surfaceInfo.position - info_next.surfaceInfo.position), 2.f);
             const float w_light_pdf = light_pdf * dist2 / cos_theta_light;
             const float weight_light = pdf_dir / (w_light_pdf + pdf_dir); // balance heuristic
 
-            radiance += weight_light * (f_brdf * cosTerm(wo, dir, info.surfaceInfo, TransportDirection::FROM_CAMERA)) * info_next.hitPrimitive->Le(info_next.surfaceInfo, -dir) / (pdf_dir * scene_lights_pdf);
+            radiance += weight_light * (f_brdf * cosTerm(wo, dir, info.surfaceInfo, TransportDirection::FROM_CAMERA)) * info_next.Le(-dir) / (pdf_dir * scene_lights_pdf);
         }
 
         return radiance;
@@ -377,7 +378,7 @@ private:
         for (int k = 0; k < maxDepth; ++k) {
             Vec3f dir;
             float pdf_dir;
-            const Vec3f f = info_current.hitPrimitive->sampleBxDF(wo.direction, info_current.surfaceInfo, TransportDirection::FROM_CAMERA, sampler, dir, pdf_dir);
+            const Vec3f f = info_current.sampleBxDF(wo.direction, TransportDirection::FROM_CAMERA, sampler, dir, pdf_dir);
             IntersectInfo info_next;
 
             if (scene.intersect(Ray{ info_current.surfaceInfo.position, dir }, info_next)) {
@@ -393,11 +394,11 @@ private:
                     throughput /= russian_roulette_prob;
                 }
 
-                if (info_next.hitPrimitive->getBxDFType() == BxDFType::DIFFUSE) {
+                if (info_next.getBxDFType() == BxDFType::DIFFUSE) {
                     // when hitting diffuse, compute radiance with photon map
                     radiance += throughput * f * cosTerm(wo.direction, dir, info_current.surfaceInfo, TransportDirection::FROM_CAMERA) * computeRadianceWithPhotonMap(-dir, info_next) / pdf_dir;
                     break;
-                } else if (info_next.hitPrimitive->getBxDFType() == BxDFType::SPECULAR) {
+                } else if (info_next.getBxDFType() == BxDFType::SPECULAR) {
                     // when hitting specular, next hit
                     wo = Ray(info_next.surfaceInfo.position, -dir);
                     throughput *= f * cosTerm(wo.direction, dir, info_current.surfaceInfo, TransportDirection::FROM_CAMERA) / pdf_dir;

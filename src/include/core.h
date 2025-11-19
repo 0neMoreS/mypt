@@ -331,21 +331,3 @@ struct SurfaceInfo
     Vec2f texcoords;
     Vec2f barycentric;
 };
-
-// forward declaration
-class Primitive;
-
-struct IntersectInfo
-{
-    float t; // distance to the hit point
-    SurfaceInfo surfaceInfo;
-    const Primitive* hitPrimitive;
-
-    IntersectInfo& operator=(const IntersectInfo& other)
-    {
-        t = other.t;
-        surfaceInfo = other.surfaceInfo;
-        hitPrimitive = other.hitPrimitive;
-        return *this;
-    }
-};

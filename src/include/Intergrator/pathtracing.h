@@ -34,22 +34,21 @@ public:
                 }
 
                 // Le
-                if (info.hitPrimitive->hasAreaLight())
+                if (info.hasAreaLight())
                 {
-                    radiance += throughput * info.hitPrimitive->Le(info.surfaceInfo, wo.direction);
+                    radiance += throughput * info.Le(wo.direction);
                     break;
                 }
 
                 // sample direction by BxDF
                 Vec3f dir;
                 float pdf_dir;
-                Vec3f f = info.hitPrimitive->sampleBxDF(wo.direction, info.surfaceInfo, TransportDirection::FROM_CAMERA, sampler, dir, pdf_dir);
+                Vec3f f = info.sampleBxDF(wo.direction, TransportDirection::FROM_CAMERA, sampler, dir, pdf_dir);
 
                 // update throughput and ray
                 throughput *= f * cosTerm(wo.direction, dir, info.surfaceInfo, TransportDirection::FROM_CAMERA) / pdf_dir;
                 wo = Ray(info.surfaceInfo.position, dir);
-            }
-            else
+            } else
             {
                 break;
             }

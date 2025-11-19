@@ -13,7 +13,7 @@ int main()
 
   const int width = 512;
   const int height = 512;
-  const int n_samples = 300000;
+  const int n_samples = 1024;
   const int max_depth = 8;
 
 
@@ -23,12 +23,12 @@ int main()
   Camera camera(Vec3f(0, 1.f, 3), Vec3f(0, 1.f, -1), Vec3f(0, 1.f, 0), 50.f, float(width) / float(height));
 
   Scene scene;
-  // scene.loadModel("../models/CornellBox-Water.obj");
-  scene.loadModel("../models/cornellbox-water2.obj");
+  scene.loadModel("../models/CornellBox-Original.obj");
+  // scene.loadModel("../models/cornellbox-water2.obj");
   scene.build();
 
   // photon tracing and build photon map
-  PathTracingNEE integrator(max_depth);
+  PathTracing integrator(max_depth);
 
 #pragma omp parallel for collapse(2) schedule(dynamic, 1)
   for (int i = 0; i < height; ++i)

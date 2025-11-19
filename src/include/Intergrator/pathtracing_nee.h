@@ -29,8 +29,8 @@ public:
                 hit_next = false;
 
                 // directly visible light source
-                if (k == 0 && info.hitPrimitive->hasAreaLight()) {
-                    radiance += throughput * info.hitPrimitive->Le(info.surfaceInfo, wo.direction);
+                if (k == 0 && info.hasAreaLight()) {
+                    radiance += throughput * info.Le(wo.direction);
                     // pdf here is camera's pdf, which is divided in the main loop
                 }
 
@@ -47,29 +47,29 @@ public:
                 // Get pdfs
                 Vec3f dir;
                 float pdf_dir;
-                Vec3f f_brdf = info.hitPrimitive->sampleBxDF(wo.direction, info.surfaceInfo, TransportDirection::FROM_CAMERA, sampler, dir, pdf_dir);
+                Vec3f f_brdf = info.sampleBxDF(wo.direction, TransportDirection::FROM_CAMERA, sampler, dir, pdf_dir);
 
                 // sample light from the scene
                 float scene_lights_pdf;
                 std::shared_ptr<Light> light = scene.sampleLight(sampler, scene_lights_pdf);
 
                 // NEE from this shading point
-                if (info.hitPrimitive->getBxDFType() == BxDFType::DIFFUSE) {
+                if (info.getBxDFType() == BxDFType::DIFFUSE) {
                     float light_pdf;
                     SurfaceInfo light_surf = light->samplePoint(sampler, light_pdf);
                     const Vec3f to_light = normalize(light_surf.position - info.surfaceInfo.position);
 
                     // ============ Sample Light ===========
 
-                    if (scene.intersect(Ray{ info.surfaceInfo.position, to_light }, info_next) && info_next.hitPrimitive->hasAreaLight(light)) {
+                    if (scene.intersect(Ray{ info.surfaceInfo.position, to_light }, info_next) && info_next.hasAreaLight(light)) {
                         const float cos_theta_light = std::abs(dot(-to_light, info_next.surfaceInfo.shadingNormal));
                         const float dist2 = std::pow(length(info_next.surfaceInfo.position - info.surfaceInfo.position), 2.f);
                         const float w_light_pdf = light_pdf * dist2 / cos_theta_light;
                         const float weight_light = w_light_pdf / (w_light_pdf + pdf_dir); // balance heuristic
 
-                        const Vec3f f_light = info.hitPrimitive->evaluateBxDF(wo.direction, to_light, info.surfaceInfo, TransportDirection::FROM_CAMERA);
+                        const Vec3f f_light = info.evaluateBxDF(wo.direction, to_light, TransportDirection::FROM_CAMERA);
 
-                        radiance += throughput * weight_light * (f_light * cosTerm(wo.direction, to_light, info.surfaceInfo, TransportDirection::FROM_CAMERA)) * info_next.hitPrimitive->Le(info_next.surfaceInfo, -to_light) / (w_light_pdf * scene_lights_pdf);
+                        radiance += throughput * weight_light * (f_light * cosTerm(wo.direction, to_light, info.surfaceInfo, TransportDirection::FROM_CAMERA)) * info_next.Le(-to_light) / (w_light_pdf * scene_lights_pdf);
                     }
 
                     // ============ Sample Light ============
@@ -80,23 +80,23 @@ public:
                     if (scene.intersect(Ray{ info.surfaceInfo.position, dir }, info_next))
                     {
                         hit_next = true;
-                        if (info_next.hitPrimitive->hasAreaLight(light)) {
+                        if (info_next.hasAreaLight(light)) {
 
                             const float cos_theta_light = std::abs(dot(-dir, info_next.surfaceInfo.shadingNormal));
                             const float dist2 = std::pow(length(info.surfaceInfo.position - info_next.surfaceInfo.position), 2.f);
                             const float w_light_pdf = light_pdf * dist2 / cos_theta_light;
                             const float weight_light = pdf_dir / (w_light_pdf + pdf_dir); // balance heuristic
 
-                            radiance += throughput * weight_light * (f_brdf * cosTerm(wo.direction, dir, info.surfaceInfo, TransportDirection::FROM_CAMERA)) * info_next.hitPrimitive->Le(info_next.surfaceInfo, -dir) / (pdf_dir * scene_lights_pdf);
+                            radiance += throughput * weight_light * (f_brdf * cosTerm(wo.direction, dir, info.surfaceInfo, TransportDirection::FROM_CAMERA)) * info_next.Le(-dir) / (pdf_dir * scene_lights_pdf);
                         }
                     }
 
                     // ============ Sample BRDF ============
-                } else if (info.hitPrimitive->getBxDFType() == BxDFType::SPECULAR) {
+                } else if (info.getBxDFType() == BxDFType::SPECULAR) {
                     if (scene.intersect(Ray{ info.surfaceInfo.position, dir }, info_next))
                     {
                         hit_next = true;
-                        if (info_next.hitPrimitive->hasAreaLight(light)) {
+                        if (info_next.hasAreaLight(light)) {
                             radiance += throughput * (f_brdf * cosTerm(wo.direction, dir, info.surfaceInfo, TransportDirection::FROM_CAMERA)) * light->Le(info_next.surfaceInfo, -dir) / (pdf_dir * scene_lights_pdf);
                         }
                     }

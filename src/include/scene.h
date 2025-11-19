@@ -8,7 +8,7 @@
 #include <vector>
 
 #include "core.h"
-#include "primitive.h"
+#include "IntersectInfo.h"
 #include "tiny_obj_loader.h"
 
 // create default BxDF
@@ -18,12 +18,12 @@ const std::shared_ptr<BxDF> createDefaultBxDF()
 }
 
 // create BxDF from tinyobj material
-const std::shared_ptr<BxDF> createBxDF(const tinyobj::material_t &material)
+const std::shared_ptr<BxDF> createBxDF(const tinyobj::material_t& material)
 {
   const Vec3f kd =
-      Vec3f(material.diffuse[0], material.diffuse[1], material.diffuse[2]);
+    Vec3f(material.diffuse[0], material.diffuse[1], material.diffuse[2]);
   const Vec3f ks =
-      Vec3f(material.specular[0], material.specular[1], material.specular[2]);
+    Vec3f(material.specular[0], material.specular[1], material.specular[2]);
 
   switch (material.illum)
   {
@@ -40,20 +40,23 @@ const std::shared_ptr<BxDF> createBxDF(const tinyobj::material_t &material)
 }
 
 // create AreaLight from tinyobj material
-const std::shared_ptr<AreaLight> createAreaLight(
-    const tinyobj::material_t &material, const Triangle *tri)
+const std::shared_ptr<Light> createLight(const tinyobj::material_t& material, const Triangle* tri)
 {
   if (material.emission[0] > 0 || material.emission[1] > 0 ||
-      material.emission[2] > 0)
+    material.emission[2] > 0)
   {
     const Vec3f le =
-        Vec3f(material.emission[0], material.emission[1], material.emission[2]);
+      Vec3f(material.emission[0], material.emission[1], material.emission[2]);
     return std::make_shared<AreaLight>(le, tri);
-  }
-  else
+  } else
   {
-    return nullptr;
+    return std::make_shared<NullLight>();
   }
+}
+
+const std::shared_ptr<Light> createNullLight()
+{
+  return std::make_shared<NullLight>();
 }
 
 class Scene
@@ -79,11 +82,6 @@ private:
   // lights
   // NOTE: per face
   std::vector<std::shared_ptr<Light>> lights;
-
-  // primitives
-  // NOTE: per face
-  std::vector<Primitive> primitives;
-
   // embree
   RTCDevice device;
   RTCScene scene;
@@ -96,12 +94,10 @@ private:
     indices.clear();
     normals.clear();
     texcoords.clear();
-    bxdfs.clear();
 
     triangles.clear();
     bxdfs.clear();
     lights.clear();
-    primitives.clear();
   }
 
 public:
@@ -114,7 +110,7 @@ public:
   }
 
   // load obj file
-  void loadModel(const std::filesystem::path &filepath)
+  void loadModel(const std::filesystem::path& filepath)
   {
     clear();
 
@@ -142,9 +138,9 @@ public:
       std::cout << "[tinyobj] Warning: " << reader.Warning() << std::endl;
     }
 
-    const auto &attrib = reader.GetAttrib();
-    const auto &shapes = reader.GetShapes();
-    const auto &materials = reader.GetMaterials();
+    const auto& attrib = reader.GetAttrib();
+    const auto& shapes = reader.GetShapes();
+    const auto& materials = reader.GetMaterials();
 
     // loop over shapes
     for (size_t s = 0; s < shapes.size(); ++s)
@@ -154,7 +150,7 @@ public:
       for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); ++f)
       {
         const size_t fv =
-            static_cast<size_t>(shapes[s].mesh.num_face_vertices[f]);
+          static_cast<size_t>(shapes[s].mesh.num_face_vertices[f]);
 
         std::vector<Vec3f> vertices;
         std::vector<Vec3f> normals;
@@ -167,32 +163,32 @@ public:
           const tinyobj::index_t idx = shapes[s].mesh.indices[index_offset + v];
 
           const tinyobj::real_t vx =
-              attrib.vertices[3 * static_cast<size_t>(idx.vertex_index) + 0];
+            attrib.vertices[3 * static_cast<size_t>(idx.vertex_index) + 0];
           const tinyobj::real_t vy =
-              attrib.vertices[3 * static_cast<size_t>(idx.vertex_index) + 1];
+            attrib.vertices[3 * static_cast<size_t>(idx.vertex_index) + 1];
           const tinyobj::real_t vz =
-              attrib.vertices[3 * static_cast<size_t>(idx.vertex_index) + 2];
+            attrib.vertices[3 * static_cast<size_t>(idx.vertex_index) + 2];
           vertices.push_back(Vec3f(vx, vy, vz));
 
           if (idx.normal_index >= 0)
           {
             const tinyobj::real_t nx =
-                attrib.normals[3 * static_cast<size_t>(idx.normal_index) + 0];
+              attrib.normals[3 * static_cast<size_t>(idx.normal_index) + 0];
             const tinyobj::real_t ny =
-                attrib.normals[3 * static_cast<size_t>(idx.normal_index) + 1];
+              attrib.normals[3 * static_cast<size_t>(idx.normal_index) + 1];
             const tinyobj::real_t nz =
-                attrib.normals[3 * static_cast<size_t>(idx.normal_index) + 2];
+              attrib.normals[3 * static_cast<size_t>(idx.normal_index) + 2];
             normals.push_back(Vec3f(nx, ny, nz));
           }
 
           if (idx.texcoord_index >= 0)
           {
             const tinyobj::real_t tx =
-                attrib
-                    .texcoords[2 * static_cast<size_t>(idx.texcoord_index) + 0];
+              attrib
+              .texcoords[2 * static_cast<size_t>(idx.texcoord_index) + 0];
             const tinyobj::real_t ty =
-                attrib
-                    .texcoords[2 * static_cast<size_t>(idx.texcoord_index) + 1];
+              attrib
+              .texcoords[2 * static_cast<size_t>(idx.texcoord_index) + 1];
             texcoords.push_back(Vec2f(tx, ty));
           }
         }
@@ -251,46 +247,30 @@ public:
     {
       // add triangle
       this->triangles.emplace_back(this->vertices.data(), this->indices.data(),
-                                   this->normals.data(), this->texcoords.data(),
-                                   faceID);
+        this->normals.data(), this->texcoords.data(),
+        faceID);
     }
 
-    // populate bxdfs
+    // populate bxdfs and lights
     for (size_t faceID = 0; faceID < nFaces(); ++faceID)
     {
-      // add bxdf
       const auto material = this->materials[faceID];
       if (material)
       {
-        const tinyobj::material_t &m = material.value();
+        // add bxdf
+        const tinyobj::material_t& m = material.value();
         this->bxdfs.push_back(createBxDF(m));
+
+        // add light
+        std::shared_ptr<Light> light = createLight(m, &this->triangles[faceID]);
+        lights.push_back(light);
       }
       // default material
       else
       {
         this->bxdfs.push_back(createDefaultBxDF());
+        this->lights.push_back(createNullLight());
       }
-    }
-
-    // populate lights, primitives
-    for (size_t faceID = 0; faceID < nFaces(); ++faceID)
-    {
-      // add light
-      std::shared_ptr<Light> light = nullptr;
-      const auto material = this->materials[faceID];
-      if (material)
-      {
-        const tinyobj::material_t &m = material.value();
-        light = createAreaLight(m, &this->triangles[faceID]);
-        if (light != nullptr)
-        {
-          lights.push_back(light);
-        }
-      }
-
-      // add primitive
-      primitives.emplace_back(&this->triangles[faceID], this->bxdfs[faceID],
-                              light);
     }
 
     std::cout << "[tinyobj] vertices: " << nVertices() << std::endl;
@@ -311,18 +291,18 @@ public:
     RTCGeometry geom = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
 
     // set vertices
-    float *vb = (float *)rtcSetNewGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX, 0,
-                                                 RTC_FORMAT_FLOAT3,
-                                                 3 * sizeof(float), nVertices());
+    float* vb = (float*)rtcSetNewGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX, 0,
+      RTC_FORMAT_FLOAT3,
+      3 * sizeof(float), nVertices());
     for (size_t i = 0; i < vertices.size(); ++i)
     {
       vb[i] = vertices[i];
     }
 
     // set indices
-    unsigned *ib = (unsigned *)rtcSetNewGeometryBuffer(
-        geom, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, 3 * sizeof(unsigned),
-        nFaces());
+    unsigned* ib = (unsigned*)rtcSetNewGeometryBuffer(
+      geom, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, 3 * sizeof(unsigned),
+      nFaces());
     for (size_t i = 0; i < indices.size(); ++i)
     {
       ib[i] = indices[i];
@@ -335,7 +315,7 @@ public:
   }
 
   // ray-scene intersection
-  bool intersect(const Ray &ray, IntersectInfo &info) const
+  bool intersect(const Ray& ray, IntersectInfo& info) const
   {
     RTCRayHit rayhit;
     rayhit.ray.org_x = ray.origin[0];
@@ -358,31 +338,29 @@ public:
       info.t = rayhit.ray.tfar;
 
       // get triangle shape
-      const Triangle &tri = this->triangles[rayhit.hit.primID];
+      const Triangle& tri = this->triangles[rayhit.hit.primID];
 
       // set surface info
       info.surfaceInfo.position = ray(info.t);
       info.surfaceInfo.barycentric = Vec2f(rayhit.hit.u, rayhit.hit.v);
       info.surfaceInfo.texcoords =
-          tri.getTexcoords(info.surfaceInfo.barycentric);
+        tri.getTexcoords(info.surfaceInfo.barycentric);
       info.surfaceInfo.geometricNormal = tri.getGeometricNormal();
       info.surfaceInfo.shadingNormal =
-          tri.computeShadingNormal(info.surfaceInfo.barycentric);
+        tri.computeShadingNormal(info.surfaceInfo.barycentric);
       orthonormalBasis(info.surfaceInfo.shadingNormal, info.surfaceInfo.dpdu,
-                       info.surfaceInfo.dpdv);
+        info.surfaceInfo.dpdv);
 
-      // set primitive
-      info.hitPrimitive = &this->primitives[rayhit.hit.primID];
-
+      info.bxdf = this->bxdfs[rayhit.hit.primID];
+      info.light = this->lights[rayhit.hit.primID];
       return true;
-    }
-    else
+    } else
     {
       return false;
     }
   }
 
-  std::shared_ptr<Light> sampleLight(Sampler &sampler, float &pdf) const
+  std::shared_ptr<Light> sampleLight(Sampler& sampler, float& pdf) const
   {
     unsigned int lightIdx = lights.size() * sampler.getNext1D();
     if (lightIdx == lights.size())
