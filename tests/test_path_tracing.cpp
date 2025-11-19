@@ -28,7 +28,7 @@ int main()
   scene.build();
 
   // photon tracing and build photon map
-  PathTracing integrator(max_depth);
+  PathTracingNEE integrator(max_depth);
 
 #pragma omp parallel for collapse(2) schedule(dynamic, 1)
   for (int i = 0; i < height; ++i)

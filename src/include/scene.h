@@ -6,64 +6,23 @@
 #include <memory>
 #include <optional>
 #include <vector>
+#include <unordered_map>
 
 #include "core.h"
 #include "IntersectInfo.h"
 #include "tiny_obj_loader.h"
-
-// create default BxDF
-const std::shared_ptr<BxDF> createDefaultBxDF()
-{
-  return std::make_shared<Lambert>(Vec3(0.9f));
-}
-
-// create BxDF from tinyobj material
-const std::shared_ptr<BxDF> createBxDF(const tinyobj::material_t& material)
-{
-  const Vec3f kd =
-    Vec3f(material.diffuse[0], material.diffuse[1], material.diffuse[2]);
-  const Vec3f ks =
-    Vec3f(material.specular[0], material.specular[1], material.specular[2]);
-
-  switch (material.illum)
-  {
-  case 5:
-    // mirror
-    return std::make_shared<Mirror>(Vec3(1.0f));
-  case 7:
-    // glass
-    return std::make_shared<Glass>(Vec3(1.0f), material.ior);
-  default:
-    // lambert
-    return std::make_shared<Lambert>(kd);
-  }
-}
-
-// create AreaLight from tinyobj material
-const std::shared_ptr<Light> createLight(const tinyobj::material_t& material, const Triangle* tri)
-{
-  if (material.emission[0] > 0 || material.emission[1] > 0 ||
-    material.emission[2] > 0)
-  {
-    const Vec3f le =
-      Vec3f(material.emission[0], material.emission[1], material.emission[2]);
-    return std::make_shared<AreaLight>(le, tri);
-  } else
-  {
-    return std::make_shared<NullLight>();
-  }
-}
-
-const std::shared_ptr<Light> createNullLight()
-{
-  return std::make_shared<NullLight>();
-}
 
 class Scene
 {
 private:
   // mesh data
   // NOTE: assuming size of normals, texcoords == size of vertices
+  struct Primitive
+  {
+    std::shared_ptr<BxDF> bxdf;
+    std::shared_ptr<Light> light;
+  };
+
   std::vector<float> vertices;
   std::vector<uint32_t> indices;
   std::vector<float> normals;
@@ -82,6 +41,8 @@ private:
   // lights
   // NOTE: per face
   std::vector<std::shared_ptr<Light>> lights;
+
+  std::vector<Primitive> primitives;
   // embree
   RTCDevice device;
   RTCScene scene;
@@ -94,10 +55,10 @@ private:
     indices.clear();
     normals.clear();
     texcoords.clear();
-
     triangles.clear();
     bxdfs.clear();
     lights.clear();
+    primitives.clear();
   }
 
 public:
@@ -246,31 +207,31 @@ public:
     for (size_t faceID = 0; faceID < nFaces(); ++faceID)
     {
       // add triangle
-      this->triangles.emplace_back(this->vertices.data(), this->indices.data(),
-        this->normals.data(), this->texcoords.data(),
-        faceID);
+      this->triangles.emplace_back(this->vertices.data(), this->indices.data(), this->normals.data(), this->texcoords.data(), faceID);
     }
 
-    // populate bxdfs and lights
+    // populate bxdfs
     for (size_t faceID = 0; faceID < nFaces(); ++faceID)
     {
+      // add bxdf
       const auto material = this->materials[faceID];
+      std::shared_ptr<Light> light = nullptr;
       if (material)
       {
-        // add bxdf
         const tinyobj::material_t& m = material.value();
         this->bxdfs.push_back(createBxDF(m));
-
-        // add light
-        std::shared_ptr<Light> light = createLight(m, &this->triangles[faceID]);
-        lights.push_back(light);
+        light = createLight(m, &this->triangles[faceID]);
+        if (light != nullptr)
+        {
+          lights.push_back(light);
+        }
       }
       // default material
       else
       {
         this->bxdfs.push_back(createDefaultBxDF());
-        this->lights.push_back(createNullLight());
       }
+      primitives.emplace_back(Primitive{ this->bxdfs[faceID], light });
     }
 
     std::cout << "[tinyobj] vertices: " << nVertices() << std::endl;
@@ -343,20 +304,59 @@ public:
       // set surface info
       info.surfaceInfo.position = ray(info.t);
       info.surfaceInfo.barycentric = Vec2f(rayhit.hit.u, rayhit.hit.v);
-      info.surfaceInfo.texcoords =
-        tri.getTexcoords(info.surfaceInfo.barycentric);
+      info.surfaceInfo.texcoords = tri.getTexcoords(info.surfaceInfo.barycentric);
       info.surfaceInfo.geometricNormal = tri.getGeometricNormal();
-      info.surfaceInfo.shadingNormal =
-        tri.computeShadingNormal(info.surfaceInfo.barycentric);
-      orthonormalBasis(info.surfaceInfo.shadingNormal, info.surfaceInfo.dpdu,
-        info.surfaceInfo.dpdv);
+      info.surfaceInfo.shadingNormal = tri.computeShadingNormal(info.surfaceInfo.barycentric);
+      orthonormalBasis(info.surfaceInfo.shadingNormal, info.surfaceInfo.dpdu, info.surfaceInfo.dpdv);
 
-      info.bxdf = this->bxdfs[rayhit.hit.primID];
-      info.light = this->lights[rayhit.hit.primID];
+      info.bxdf = this->primitives[rayhit.hit.primID].bxdf;
+      info.light = this->primitives[rayhit.hit.primID].light;
       return true;
     } else
     {
       return false;
+    }
+  }
+
+  // create default BxDF
+  const std::shared_ptr<BxDF> createDefaultBxDF()
+  {
+    return std::make_shared<Lambert>(Vec3(0.9f));
+  }
+
+  // create BxDF from tinyobj material
+  const std::shared_ptr<BxDF> createBxDF(const tinyobj::material_t& material)
+  {
+    const Vec3f kd =
+      Vec3f(material.diffuse[0], material.diffuse[1], material.diffuse[2]);
+    const Vec3f ks =
+      Vec3f(material.specular[0], material.specular[1], material.specular[2]);
+
+    switch (material.illum)
+    {
+    case 5:
+      // mirror
+      return std::make_shared<Mirror>(Vec3(1.0f));
+    case 7:
+      // glass
+      return std::make_shared<Glass>(Vec3(1.0f), material.ior);
+    default:
+      // lambert
+      return std::make_shared<Lambert>(kd);
+    }
+  }
+
+  // create AreaLight from tinyobj material
+  const std::shared_ptr<Light> createLight(const tinyobj::material_t& material, const Triangle* tri)
+  {
+    if (material.emission[0] > 0 || material.emission[1] > 0 ||
+      material.emission[2] > 0)
+    {
+      const Vec3f le = Vec3f(material.emission[0], material.emission[1], material.emission[2]);
+      return std::make_shared<AreaLight>(le, tri);
+    } else
+    {
+      return nullptr;
     }
   }
 
@@ -366,6 +366,7 @@ public:
     if (lightIdx == lights.size())
       lightIdx--;
     pdf = 1.0f / lights.size();
+
     return lights[lightIdx];
   }
 };

@@ -9,28 +9,6 @@ public:
     virtual Vec3f Le(const SurfaceInfo& info, const Vec3f& dir) const = 0;
     virtual SurfaceInfo samplePoint(Sampler& sampler, float& pdf) const = 0;
     virtual Vec3f sampleDirection(const SurfaceInfo& surfInfo, Sampler& sampler, float& pdf) const = 0;
-    virtual bool isNull() const { return false; }
-};
-
-class NullLight : public Light
-{
-public:
-    Vec3f Le(const SurfaceInfo& info, const Vec3f& dir) const override
-    {
-        return Vec3f(0.0f);
-    }
-
-    SurfaceInfo samplePoint(Sampler& sampler, float& pdf) const override
-    {
-        return SurfaceInfo();
-    }
-
-    Vec3f sampleDirection(const SurfaceInfo& surfInfo, Sampler& sampler, float& pdf) const override
-    {
-        return Vec3f(0.0f);
-    }
-
-    bool isNull() const override { return true; }
 };
 
 class AreaLight : public Light

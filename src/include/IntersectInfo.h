@@ -20,11 +20,11 @@ struct IntersectInfo
         return *this;
     }
 
-    bool hasAreaLight() const { return !light->isNull(); }
+    bool hasAreaLight() const { return light != nullptr; }
 
     bool hasAreaLight(const std::shared_ptr<Light>& light) const
     {
-        return !light->isNull() && light == light;
+        return this->light != nullptr && light == this->light;
     }
 
     // return emission
