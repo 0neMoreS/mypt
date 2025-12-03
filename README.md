@@ -1,5 +1,9 @@
 # Build a PT form ZERO
 
+![Path tracing result](output/output_test_path_tracing.png)
+
+![Photon mapping result](output/output_test_photon_mapping_ref_32.png)
+
 1. Sphere::Intersect
     Return root1 > 0 ? root1 : (root2 > 0 ? root2 : 0) to consider the ray starts in the sphere
 
@@ -18,3 +22,4 @@
     At first, I suppose the light path of refraction is reverse because we omit light from camera to light source. Actually, we can still regard it as forward light path. We can use classification discussion to prove it: if light goes from air to glass in our camera view, then from light view or 'real view', this light goes from glass to air and will cause total reflection. However, because we know there is definitely an out going light from glass to air('real view'), so we don't need to care about total reflection in this situation one. The second situation is that light goes from glass to air in camera perspective, and is reversed from air to glass in 'real view'. On the contrary, in this situation we need to consider total reflection because we don't sure whether there is still a refractive light going out from glass to air(camera view). All in all, we can regard every light in path tracing as a forward light because of the reversibility.
 
 6. photon mapping, BVH, model input
+
